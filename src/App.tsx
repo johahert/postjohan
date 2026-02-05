@@ -84,6 +84,127 @@ function saveState(state: SavedState) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
 }
 
+function isJsonContentType(headers: Record<string, string>): boolean {
+  return Object.entries(headers).some(
+    ([k, v]) => k.toLowerCase() === 'content-type' && v.toLowerCase().includes('json'),
+  )
+}
+
+function tryParseJson(text: string): unknown | undefined {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return undefined
+  }
+}
+
+// ── Collapsible JSON Viewer ────────────────────────────────────────────
+
+function JsonNode({ label, value, defaultOpen = true }: { label?: string; value: unknown; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen)
+
+  const labelEl = label !== undefined ? (
+    <span className="text-indigo-600 dark:text-indigo-400">"{label}"</span>
+  ) : null
+
+  // null
+  if (value === null) {
+    return (
+      <span>
+        {labelEl}{labelEl && <span className="text-slate-500">: </span>}
+        <span className="text-slate-400 dark:text-slate-500">null</span>
+      </span>
+    )
+  }
+
+  // primitives
+  if (typeof value === 'string') {
+    return (
+      <span>
+        {labelEl}{labelEl && <span className="text-slate-500">: </span>}
+        <span className="text-emerald-600 dark:text-emerald-400 break-all">"{value}"</span>
+      </span>
+    )
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return (
+      <span>
+        {labelEl}{labelEl && <span className="text-slate-500">: </span>}
+        <span className="text-amber-600 dark:text-amber-400">{String(value)}</span>
+      </span>
+    )
+  }
+
+  // arrays
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return (
+        <span>
+          {labelEl}{labelEl && <span className="text-slate-500">: </span>}
+          <span className="text-slate-500">[]</span>
+        </span>
+      )
+    }
+    return (
+      <div className="min-w-0">
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+        >
+          <span className="inline-block w-3 text-[10px] leading-none">{open ? '▼' : '▶'}</span>
+          {labelEl}{labelEl && <span className="text-slate-500">: </span>}
+          <span className="text-slate-400 text-[10px]">Array[{value.length}]</span>
+        </button>
+        {open && (
+          <div className="ml-4 border-l border-slate-200 pl-3 dark:border-slate-700">
+            {value.map((item, i) => (
+              <div key={i} className="py-[1px]">
+                <JsonNode label={String(i)} value={item} defaultOpen={false} />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // objects
+  if (typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+    if (entries.length === 0) {
+      return (
+        <span>
+          {labelEl}{labelEl && <span className="text-slate-500">: </span>}
+          <span className="text-slate-500">{'{}'}</span>
+        </span>
+      )
+    }
+    return (
+      <div className="min-w-0">
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+        >
+          <span className="inline-block w-3 text-[10px] leading-none">{open ? '▼' : '▶'}</span>
+          {labelEl}{labelEl && <span className="text-slate-500">: </span>}
+          <span className="text-slate-400 text-[10px]">{`{${entries.length}}`}</span>
+        </button>
+        {open && (
+          <div className="ml-4 border-l border-slate-200 pl-3 dark:border-slate-700">
+            {entries.map(([k, v]) => (
+              <div key={k} className="py-[1px]">
+                <JsonNode label={k} value={v} defaultOpen={false} />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return <span>{String(value)}</span>
+}
+
 // ── Component ──────────────────────────────────────────────────────────
 
 function App() {
@@ -590,13 +711,32 @@ function App() {
 
             {response && (
               <div className="mt-4 space-y-4">
-                <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
                   <p className="mb-2 text-xs font-semibold uppercase text-slate-400 dark:text-slate-500">
                     Body
                   </p>
-                  <pre className="max-h-[400px] max-w-full overflow-y-auto  font-mono text-xs  text-slate-700 dark:text-slate-300 text-wrap">
-                    {response.body || 'No body returned'}
-                  </pre>
+                  {(() => {
+                    const bodyText = response.body || ''
+                    if (!bodyText) {
+                      return (
+                        <p className="text-xs text-slate-400 dark:text-slate-500">No body returned</p>
+                      )
+                    }
+                    const isJson = isJsonContentType(response.headers)
+                    const parsed = isJson ? tryParseJson(bodyText) : undefined
+                    if (parsed !== undefined) {
+                      return (
+                        <div className="max-h-[500px] overflow-auto font-mono text-xs text-slate-700 dark:text-slate-300">
+                          <JsonNode value={parsed} defaultOpen={true} />
+                        </div>
+                      )
+                    }
+                    return (
+                      <pre className="max-h-[500px] overflow-auto whitespace-pre-wrap break-words font-mono text-xs text-slate-700 dark:text-slate-300">
+                        {bodyText}
+                      </pre>
+                    )
+                  })()}
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
                   <p className="mb-2 text-xs font-semibold uppercase text-slate-400 dark:text-slate-500">
