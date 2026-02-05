@@ -1,0 +1,41 @@
+{
+  "profiles": [
+    {
+      "id": "example-bearer-1",
+      "name": "My API (Bearer)",
+      "auth": {
+        "type": "bearer",
+        "bearer": "your-jwt-token-here",
+        "basicUser": "",
+        "basicPass": "",
+        "apiKeyHeader": "X-API-Key",
+        "apiKeyValue": ""
+      }
+    },
+    {
+      "id": "example-basic-1",
+      "name": "Staging (Basic Auth)",
+      "auth": {
+        "type": "basic",
+        "bearer": "",
+        "basicUser": "admin",
+        "basicPass": "password123",
+        "apiKeyHeader": "X-API-Key",
+        "apiKeyValue": ""
+      }
+    },
+    {
+      "id": "example-apikey-1",
+      "name": "Third-Party Service (API Key)",
+      "auth": {
+        "type": "api-key",
+        "bearer": "",
+        "basicUser": "",
+        "basicPass": "",
+        "apiKeyHeader": "X-API-Key",
+        "apiKeyValue": "your-api-key-here"
+      }
+    }
+  ],
+  "activeProfileId": null
+}

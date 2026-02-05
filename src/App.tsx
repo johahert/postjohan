@@ -238,7 +238,50 @@ function App() {
     document.documentElement.classList.toggle('dark', darkMode)
   }, [darkMode])
 
-  // ── Persistence helper ───────────────────────────────────────────────
+  // ── Load auth profiles from config.json on startup ───────────────────
+
+  useEffect(() => {
+    fetch('/api/config')
+      .then((r) => r.json())
+      .then((cfg: { profiles?: AuthProfile[]; activeProfileId?: string | null }) => {
+        if (cfg.profiles && cfg.profiles.length > 0) {
+          setProfiles(cfg.profiles)
+          if (cfg.activeProfileId !== undefined) {
+            setActiveProfileId(cfg.activeProfileId)
+            const active = cfg.profiles.find((p) => p.id === cfg.activeProfileId)
+            if (active) setAuth({ ...active.auth })
+          }
+        }
+      })
+      .catch(() => {
+        /* config file may not exist yet — ignore */
+      })
+  }, [])
+
+  // ── Persist auth profiles to config.json on changes ──────────────────
+
+  const profilesRef = useCallback(
+    (profs: AuthProfile[], activeId: string | null) => {
+      fetch('/api/config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profiles: profs, activeProfileId: activeId }),
+      }).catch(() => {
+        /* ignore write errors */
+      })
+    },
+    [],
+  )
+
+  useEffect(() => {
+    // Skip the initial render — we only persist user-initiated changes
+    const timer = setTimeout(() => {
+      profilesRef(profiles, activeProfileId)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [profiles, activeProfileId, profilesRef])
+
+  // ── Persistence helper (localStorage for other state) ────────────────
 
   const persist = useCallback(() => {
     saveState({

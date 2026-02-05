@@ -40,9 +40,12 @@ app.whenReady().then(async () => {
     ? undefined
     : path.join(__dirname, '..', 'dist')
 
+  // Config directory lives in Electron's userData folder (persists across installs)
+  const configDir = app.getPath('userData')
+
   // Start the backend server (port 0 = random available port in prod)
   const port = isDev ? 8080 : 0
-  const serverPort = await startServer(staticDir, port)
+  const serverPort = await startServer(staticDir, port, configDir)
   console.log(`Backend ready on port ${serverPort}`)
 
   await createWindow(serverPort)

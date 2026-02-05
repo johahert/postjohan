@@ -1,9 +1,28 @@
 import cors from 'cors'
 import express from 'express'
+import fs from 'node:fs'
 import { spawn } from 'node:child_process'
 import path from 'node:path'
 
-export function createApp(staticDir?: string) {
+function configPath(configDir: string) {
+  return path.join(configDir, 'config.json')
+}
+
+function readConfig(configDir: string): Record<string, unknown> {
+  try {
+    const raw = fs.readFileSync(configPath(configDir), 'utf-8')
+    return JSON.parse(raw) as Record<string, unknown>
+  } catch {
+    return {}
+  }
+}
+
+function writeConfig(configDir: string, data: Record<string, unknown>) {
+  fs.mkdirSync(configDir, { recursive: true })
+  fs.writeFileSync(configPath(configDir), JSON.stringify(data, null, 2), 'utf-8')
+}
+
+export function createApp(staticDir?: string, configDir?: string) {
   const app = express()
 
   app.use(cors())
@@ -14,8 +33,28 @@ export function createApp(staticDir?: string) {
     app.use(express.static(staticDir))
   }
 
+  // Resolve config directory (default: cwd)
+  const cfgDir = configDir ?? process.cwd()
+
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok' })
+  })
+
+  // ── Config file persistence ───────────────────────────────────────
+
+  app.get('/api/config', (_req, res) => {
+    res.json(readConfig(cfgDir))
+  })
+
+  app.put('/api/config', (req, res) => {
+    try {
+      const existing = readConfig(cfgDir)
+      const merged = { ...existing, ...req.body }
+      writeConfig(cfgDir, merged)
+      res.json(merged)
+    } catch (err) {
+      res.status(500).json({ message: 'Failed to write config', details: String(err) })
+    }
   })
 
 app.post('/api/request', async (req, res) => {
@@ -114,9 +153,9 @@ app.post('/api/request', async (req, res) => {
   return app
 }
 
-export function startServer(staticDir?: string, port = 8080): Promise<number> {
+export function startServer(staticDir?: string, port = 8080, configDir?: string): Promise<number> {
   return new Promise((resolve) => {
-    const app = createApp(staticDir)
+    const app = createApp(staticDir, configDir)
     const server = app.listen(port, () => {
       const addr = server.address()
       const boundPort = typeof addr === 'object' && addr ? addr.port : port
