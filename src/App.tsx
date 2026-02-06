@@ -98,6 +98,246 @@ function tryParseJson(text: string): unknown | undefined {
   }
 }
 
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
+
+function toInterfaceName(key: string): string {
+  return capitalize(
+    key.replace(/[^a-zA-Z0-9]+(.)/g, (_, ch) => ch.toUpperCase()).replace(/[^a-zA-Z0-9]/g, ''),
+  )
+}
+
+function generateTypesFromJson(
+  value: unknown,
+  rootName = 'Root',
+  nested = false,
+): string {
+  const interfaces: string[] = []
+
+  function inferType(val: unknown, name: string, depth = 1): string {
+    if (val === null) return 'null'
+    if (Array.isArray(val)) {
+      if (val.length === 0) return 'unknown[]'
+      const itemType = inferType(val[0], name + 'Item', depth)
+      return `${itemType}[]`
+    }
+    if (typeof val === 'object') {
+      const iName = toInterfaceName(name)
+      if (nested) {
+        buildInterface(val as Record<string, unknown>, iName)
+        return iName
+      }
+      // inline object type
+      const entries = Object.entries(val as Record<string, unknown>)
+      if (entries.length === 0) return 'Record<string, unknown>'
+      const indent = '  '.repeat(depth)
+      const closingIndent = '  '.repeat(depth - 1)
+      const fields = entries
+        .map(([k, v]) => {
+          const safe = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(k) ? k : `"${k}"`
+          return `${indent}${safe}: ${inferType(v, name + capitalize(k), depth + 1)};`
+        })
+        .join('\n')
+      return `{\n${fields}\n${closingIndent}}`
+    }
+    if (typeof val === 'string') return 'string'
+    if (typeof val === 'number') return 'number'
+    if (typeof val === 'boolean') return 'boolean'
+    return 'unknown'
+  }
+
+  function buildInterface(obj: Record<string, unknown>, name: string) {
+    const fields = Object.entries(obj)
+      .map(([k, v]) => {
+        const safe = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(k) ? k : `"${k}"`
+        return `  ${safe}: ${inferType(v, name + capitalize(k), 2)};`
+      })
+      .join('\n')
+    interfaces.push(`interface ${name} {\n${fields}\n}`)
+  }
+
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    buildInterface(value as Record<string, unknown>, toInterfaceName(rootName))
+  } else if (Array.isArray(value)) {
+    if (value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
+      buildInterface(value[0] as Record<string, unknown>, toInterfaceName(rootName))
+      interfaces.push(`type ${toInterfaceName(rootName)}List = ${toInterfaceName(rootName)}[]`)
+    } else {
+      const itemType = value.length > 0 ? inferType(value[0], rootName) : 'unknown'
+      interfaces.push(`type ${toInterfaceName(rootName)} = ${itemType}[]`)
+    }
+  } else {
+    interfaces.push(`type ${toInterfaceName(rootName)} = ${inferType(value, rootName)}`)
+  }
+
+  return interfaces.join('\n\n')
+}
+
+// ── TS Syntax Highlighting ─────────────────────────────────────────────
+
+function highlightTs(code: string): React.ReactNode[] {
+  // tokenize line-by-line to preserve whitespace
+  const lines = code.split('\n')
+  const result: React.ReactNode[] = []
+  let globalKey = 0
+
+  const tokenRegex = /([a-zA-Z_$][a-zA-Z0-9_$]*)|([{}\[\]()=;,:])|(".+?")|( +)/g
+
+  lines.forEach((line, lineIdx) => {
+    let match: RegExpExecArray | null
+    let lastIndex = 0
+
+    tokenRegex.lastIndex = 0
+    while ((match = tokenRegex.exec(line)) !== null) {
+      // any gap (shouldn't happen but safety)
+      if (match.index > lastIndex) {
+        result.push(line.slice(lastIndex, match.index))
+      }
+      lastIndex = tokenRegex.lastIndex
+
+      const token = match[0]
+      const key = globalKey++
+
+      if (match[3]) {
+        // quoted string (property name with special chars)
+        result.push(
+          <span key={key} className="text-sky-600 dark:text-sky-400">{token}</span>,
+        )
+      } else if (match[2]) {
+        // brackets / punctuation
+        if (token === '{' || token === '}') {
+          result.push(
+            <span key={key} className="text-amber-600 dark:text-amber-400">{token}</span>,
+          )
+        } else if (token === '[' || token === ']') {
+          result.push(
+            <span key={key} className="text-amber-600 dark:text-amber-400">{token}</span>,
+          )
+        } else if (token === ':' || token === '=' || token === ',' || token === ';') {
+          result.push(
+            <span key={key} className="text-slate-500 dark:text-slate-400">{token}</span>,
+          )
+        } else {
+          result.push(token)
+        }
+      } else if (match[1]) {
+        // identifier or keyword
+        if (token === 'interface' || token === 'type') {
+          result.push(
+            <span key={key} className="text-purple-600 dark:text-purple-400">{token}</span>,
+          )
+        } else if (token === 'string' || token === 'number' || token === 'boolean' || token === 'null' || token === 'unknown') {
+          result.push(
+            <span key={key} className="text-teal-600 dark:text-teal-400">{token}</span>,
+          )
+        } else if (token === 'Record') {
+          result.push(
+            <span key={key} className="text-teal-600 dark:text-teal-400">{token}</span>,
+          )
+        } else {
+          // check context: is it a property key (followed by :) or a type name
+          const rest = line.slice(tokenRegex.lastIndex).trimStart()
+          if (rest.startsWith(':')) {
+            // property name
+            result.push(
+              <span key={key} className="text-sky-600 dark:text-sky-400">{token}</span>,
+            )
+          } else {
+            // type / interface name
+            result.push(
+              <span key={key} className="text-emerald-600 dark:text-emerald-400">{token}</span>,
+            )
+          }
+        }
+      } else {
+        // spaces
+        result.push(token)
+      }
+    }
+
+    // remaining text
+    if (lastIndex < line.length) {
+      result.push(line.slice(lastIndex))
+    }
+
+    if (lineIdx < lines.length - 1) {
+      result.push('\n')
+    }
+  })
+
+  return result
+}
+
+// ── Types Modal ────────────────────────────────────────────────────────
+
+function TypesModal({
+  json,
+  onClose,
+}: {
+  json: unknown
+  onClose: () => void
+}) {
+  const [nested, setNested] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const generated = useMemo(() => generateTypesFromJson(json, 'Root', nested), [json, nested])
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(generated).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="mx-4 w-full max-w-4xl rounded-2xl bg-white p-6 shadow-2xl ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+            Generated TypeScript Types
+          </h3>
+          <button
+            onClick={onClose}
+            className="rounded p-1 text-slate-400 transition hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="mb-3 flex items-center gap-3">
+          <label className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <input
+              type="checkbox"
+              checked={nested}
+              onChange={(e) => setNested(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700"
+            />
+            Extract nested objects as separate interfaces
+          </label>
+        </div>
+
+        <div className="relative">
+          <pre className="max-h-[400px] overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-5 dark:border-slate-700 dark:bg-slate-900">
+            {highlightTs(generated)}
+          </pre>
+          <button
+            onClick={handleCopy}
+            className="absolute right-3 top-3 rounded-lg bg-indigo-600 px-3 py-1.5 text-[10px] font-semibold text-white shadow transition hover:bg-indigo-500"
+          >
+            {copied ? 'Copied!' : 'Copy'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Collapsible JSON Viewer ────────────────────────────────────────────
 
 function JsonNode({ label, value, defaultOpen = true }: { label?: string; value: unknown; defaultOpen?: boolean }) {
@@ -231,6 +471,7 @@ function App() {
   const [history, setHistory] = useState<HistoryEntry[]>(saved.history ?? [])
   const [activeTab, setActiveTab] = useState<Tab>('Headers')
   const [profileName, setProfileName] = useState('')
+  const [showTypesModal, setShowTypesModal] = useState(false)
 
   // ── Dark mode ────────────────────────────────────────────────────────
 
@@ -755,9 +996,26 @@ function App() {
             {response && (
               <div className="mt-4 space-y-4">
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
-                  <p className="mb-2 text-xs font-semibold uppercase text-slate-400 dark:text-slate-500">
-                    Body
-                  </p>
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase text-slate-400 dark:text-slate-500">
+                      Body
+                    </p>
+                    {(() => {
+                      const parsed = tryParseJson(response.body || '')
+                      if (parsed !== undefined) {
+                        return (
+                          <button
+                            onClick={() => setShowTypesModal(true)}
+                            className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-semibold text-indigo-600 transition hover:border-indigo-300 hover:bg-indigo-50 dark:border-slate-600 dark:bg-slate-700 dark:text-indigo-400 dark:hover:border-indigo-500 dark:hover:bg-indigo-900/30"
+                            title="Generate TypeScript types from response"
+                          >
+                            {'{ } TS Types'}
+                          </button>
+                        )
+                      }
+                      return null
+                    })()}
+                  </div>
                   {(() => {
                     const bodyText = response.body || ''
                     if (!bodyText) {
@@ -769,7 +1027,7 @@ function App() {
                     const parsed = isJson ? tryParseJson(bodyText) : undefined
                     if (parsed !== undefined) {
                       return (
-                        <div className="max-h-[500px] overflow-auto font-mono text-xs text-slate-700 dark:text-slate-300">
+                        <div className="max-h-[500px] overflow-auto font-mono text-sm text-slate-700 dark:text-slate-300">
                           <JsonNode value={parsed} defaultOpen={true} />
                         </div>
                       )
@@ -794,6 +1052,15 @@ function App() {
               </div>
             )}
           </div>
+
+            {/* Types modal */}
+            {showTypesModal && response && (() => {
+              const parsed = tryParseJson(response.body || '')
+              if (parsed !== undefined) {
+                return <TypesModal json={parsed} onClose={() => setShowTypesModal(false)} />
+              }
+              return null
+            })()}
         </section>
 
         {/* Right column — History */}
