@@ -47,10 +47,87 @@ export function generateTypesFromJson(
 ): string {
   const interfaces: string[] = []
 
+  /** Sample up to `limit` objects in an array to build a representative
+   *  object where null values are replaced by non-null values found in
+   *  later entries so we can infer proper types. */
+  const SAMPLE_LIMIT = 50
+
+  function mergeObjectSamples(items: Record<string, unknown>[]): Record<string, unknown> {
+    if (items.length === 0) return {}
+    const merged: Record<string, unknown> = {}
+    const nullKeys = new Set<string>()
+
+    // Seed with the first item (deep-clone so we can mutate nested values)
+    for (const [k, v] of Object.entries(items[0])) {
+      merged[k] = v
+      if (v === null) nullKeys.add(k)
+    }
+
+    // Scan later items to resolve null keys
+    const max = Math.min(items.length, SAMPLE_LIMIT)
+    for (let i = 1; i < max && nullKeys.size > 0; i++) {
+      const obj = items[i]
+      if (typeof obj !== 'object' || obj === null) continue
+      for (const key of [...nullKeys]) {
+        const val = obj[key]
+        if (val !== null && val !== undefined) {
+          merged[key] = val
+          nullKeys.delete(key)
+        }
+      }
+    }
+
+    // Recursively merge nested objects and arrays of objects
+    for (const key of Object.keys(merged)) {
+      const val = merged[key]
+
+      // Nested single object: gather that same key from all items and merge
+      if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+        const nestedItems = items
+          .slice(0, max)
+          .map((item) => item[key])
+          .filter((v): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v))
+        if (nestedItems.length > 1) {
+          merged[key] = mergeObjectSamples(nestedItems)
+        }
+      }
+
+      // Nested array of objects: pool all array entries and merge
+      if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object' && val[0] !== null && !Array.isArray(val[0])) {
+        const allEntries: Record<string, unknown>[] = []
+        for (let i = 0; i < max && i < items.length; i++) {
+          const arr = items[i][key]
+          if (Array.isArray(arr)) {
+            for (const entry of arr) {
+              if (typeof entry === 'object' && entry !== null && !Array.isArray(entry)) {
+                allEntries.push(entry as Record<string, unknown>)
+                if (allEntries.length >= SAMPLE_LIMIT) break
+              }
+            }
+          }
+          if (allEntries.length >= SAMPLE_LIMIT) break
+        }
+        if (allEntries.length > 1) {
+          merged[key] = [mergeObjectSamples(allEntries)]
+        }
+      }
+    }
+
+    return merged
+  }
+
   function inferType(val: unknown, name: string, depth = 1): string {
     if (val === null) return 'null'
     if (Array.isArray(val)) {
       if (val.length === 0) return 'unknown[]'
+      // If the array contains objects, merge samples to resolve nulls
+      if (typeof val[0] === 'object' && val[0] !== null && !Array.isArray(val[0])) {
+        const representative = mergeObjectSamples(
+          val.filter((v): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)),
+        )
+        const itemType = inferType(representative, name + 'Item', depth)
+        return `${itemType}[]`
+      }
       const itemType = inferType(val[0], name + 'Item', depth)
       return `${itemType}[]`
     }
@@ -93,7 +170,10 @@ export function generateTypesFromJson(
     buildInterface(value as Record<string, unknown>, toInterfaceName(rootName))
   } else if (Array.isArray(value)) {
     if (value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
-      buildInterface(value[0] as Record<string, unknown>, toInterfaceName(rootName))
+      const representative = mergeObjectSamples(
+        value.filter((v): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)),
+      )
+      buildInterface(representative, toInterfaceName(rootName))
       interfaces.push(`type ${toInterfaceName(rootName)}List = ${toInterfaceName(rootName)}[]`)
     } else {
       const itemType = value.length > 0 ? inferType(value[0], rootName) : 'unknown'
