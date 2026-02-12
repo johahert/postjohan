@@ -42,7 +42,7 @@ export function toInterfaceName(key: string): string {
 
 export function generateTypesFromJson(
   value: unknown,
-  rootName = 'Root',
+  rootName = 'Response',
   nested = false,
 ): string {
   const interfaces: string[] = []

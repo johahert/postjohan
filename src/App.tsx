@@ -617,7 +617,7 @@ function App() {
             {showTypesModal && response && (() => {
               const parsed = tryParseJson(response.body || '')
               if (parsed !== undefined) {
-                return <TypesModal json={parsed} onClose={() => setShowTypesModal(false)} />
+                return <TypesModal json={parsed} url={finalUrl} onClose={() => setShowTypesModal(false)} />
               }
               return null
             })()}

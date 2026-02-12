@@ -1,21 +1,89 @@
 import { useMemo, useState } from 'react'
 import { generateTypesFromJson, highlightTs } from '../utils'
 
+// ── Helpers ────────────────────────────────────────────────────────────
+
+type ModalTab = 'types' | 'useQuery'
+
+const MODAL_TABS: { id: ModalTab; label: string }[] = [
+  { id: 'types', label: 'Types' },
+  { id: 'useQuery', label: 'useQuery Hook' },
+]
+
+function deriveQueryKeyAndName(url: string): { queryKey: string; hookName: string; fetchUrl: string } {
+  try {
+    const parsed = new URL(url)
+    // Use path segments to build a meaningful name
+    const segments = parsed.pathname
+      .split('/')
+      .filter(Boolean)
+      .map((s) => s.replace(/[^a-zA-Z0-9]/g, ''))
+
+    if (segments.length === 0) {
+      return { queryKey: 'data', hookName: 'useData', fetchUrl: url }
+    }
+
+    // Use the last meaningful segment (skip numeric IDs for the name)
+    const meaningful = segments.filter((s) => !/^\d+$/.test(s))
+    const base = meaningful.length > 0 ? meaningful[meaningful.length - 1] : segments[0]
+    const capitalized = base.charAt(0).toUpperCase() + base.slice(1)
+
+    return {
+      queryKey: segments.join('-'),
+      hookName: `use${capitalized}`,
+      fetchUrl: url,
+    }
+  } catch {
+    return { queryKey: 'data', hookName: 'useData', fetchUrl: url }
+  }
+}
+
+function generateUseQuerySnippet(types: string, url: string, isArray: boolean): string {
+  const { queryKey, hookName, fetchUrl } = deriveQueryKeyAndName(url)
+  const rootType = isArray ? 'Response[]' : 'Response'
+
+  return `${types}
+
+// ── ${hookName} ────────────────────────────────────────────────────────
+
+async function fetch${hookName.slice(3)}(): Promise<${rootType}> {
+  const res = await fetch('${fetchUrl}')
+  if (!res.ok) throw new Error(\`Request failed: \$\{res.status\}\`)
+  return res.json()
+}
+
+export function ${hookName}() {
+  return useQuery({
+    queryKey: ['${queryKey}'],
+    queryFn: fetch${hookName.slice(3)},
+  })
+}`
+}
+
 // ── Types Modal ────────────────────────────────────────────────────────
 
 export function TypesModal({
   json,
+  url,
   onClose,
 }: {
   json: unknown
+  url: string
   onClose: () => void
 }) {
   const [nested, setNested] = useState(false)
   const [copied, setCopied] = useState(false)
-  const generated = useMemo(() => generateTypesFromJson(json, 'Root', nested), [json, nested])
+  const [activeTab, setActiveTab] = useState<ModalTab>('types')
+  const generated = useMemo(() => generateTypesFromJson(json, 'Response', nested), [json, nested])
+  const hookSnippet = useMemo(
+    () => generateUseQuerySnippet(generated, url, Array.isArray(json)),
+    [generated, url, json],
+  )
+
+  const currentCode = activeTab === 'types' ? generated : hookSnippet
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(generated).then(() => {
+    navigator.clipboard.writeText(currentCode).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     })
@@ -32,7 +100,7 @@ export function TypesModal({
       >
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-            Generated TypeScript Types
+            Generated TypeScript
           </h3>
           <button
             onClick={onClose}
@@ -40,6 +108,23 @@ export function TypesModal({
           >
             ✕
           </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="mb-3 flex items-center gap-1 border-b border-slate-100 dark:border-slate-700">
+          {MODAL_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => { setActiveTab(tab.id); setCopied(false) }}
+              className={`px-4 py-2 text-xs font-medium transition ${
+                activeTab === tab.id
+                  ? 'border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400'
+                  : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         <div className="mb-3 flex items-center gap-3">
@@ -56,7 +141,7 @@ export function TypesModal({
 
         <div className="relative">
           <pre className="max-h-[400px] overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-4 font-mono text-xs leading-5 dark:border-slate-700 dark:bg-slate-900">
-            {highlightTs(generated)}
+            {highlightTs(currentCode)}
           </pre>
           <button
             onClick={handleCopy}
