@@ -38,9 +38,9 @@ function deriveQueryKeyAndName(url: string): { queryKey: string; hookName: strin
   }
 }
 
-function generateUseQuerySnippet(types: string, url: string, isArray: boolean): string {
+function generateUseQuerySnippet(types: string, url: string, isArray: boolean, prefix: string): string {
   const { queryKey, hookName, fetchUrl } = deriveQueryKeyAndName(url)
-  const rootType = isArray ? 'Response[]' : 'Response'
+  const rootType = isArray ? `${prefix}[]` : prefix
 
   return `${types}
 
@@ -74,10 +74,11 @@ export function TypesModal({
   const [nested, setNested] = useState(false)
   const [copied, setCopied] = useState(false)
   const [activeTab, setActiveTab] = useState<ModalTab>('types')
-  const generated = useMemo(() => generateTypesFromJson(json, 'Response', nested), [json, nested])
+  const [prefix, setPrefix] = useState('Response')
+  const generated = useMemo(() => generateTypesFromJson(json, prefix, nested), [json, prefix, nested])
   const hookSnippet = useMemo(
-    () => generateUseQuerySnippet(generated, url, Array.isArray(json)),
-    [generated, url, json],
+    () => generateUseQuerySnippet(generated, url, Array.isArray(json), prefix),
+    [generated, url, json, prefix],
   )
 
   const currentCode = activeTab === 'types' ? generated : hookSnippet
@@ -127,7 +128,7 @@ export function TypesModal({
           ))}
         </div>
 
-        <div className="mb-3 flex items-center gap-3">
+        <div className="mb-3 flex items-center gap-4">
           <label className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
             <input
               type="checkbox"
@@ -136,6 +137,15 @@ export function TypesModal({
               className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700"
             />
             Extract nested objects as separate interfaces
+          </label>
+          <label className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+            Prefix
+            <input
+              type="text"
+              value={prefix}
+              onChange={(e) => setPrefix(e.target.value || 'Response')}
+              className="w-28 rounded border border-slate-300 bg-white px-2 py-0.5 font-mono text-xs text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+            />
           </label>
         </div>
 
