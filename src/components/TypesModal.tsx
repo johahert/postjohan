@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { generateTypesFromJson, highlightTs } from '../utils'
+import { generateTypesFromJson } from '../utils/typeGenerator'
+import { highlightTs } from '../utils/highlighter'
 
 // ── Helpers ────────────────────────────────────────────────────────────
 
