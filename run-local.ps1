@@ -1,0 +1,1 @@
+$env:ELECTRON_DEV='0'; npx electron . --no-sandbox
