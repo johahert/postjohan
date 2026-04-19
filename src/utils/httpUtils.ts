@@ -9,7 +9,7 @@ export function buildFinalUrl(url: string, params: KVEntry[]): string {
     return u.toString()
   } catch {
     const qs = enabledParams
-      .map((p) => `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value)}`)
+      .map((p) => `${encodeURIComponent(p.key.trim())}=${encodeURIComponent(p.value)}`)
       .join('&')
     return url + (url.includes('?') ? '&' : '?') + qs
   }
