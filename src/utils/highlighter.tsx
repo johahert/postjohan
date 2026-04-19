@@ -1,6 +1,8 @@
-export function highlightTs(code: string): React.ReactNode[] {
+import type { ReactNode } from 'react'
+
+export function highlightTs(code: string): ReactNode[] {
   const lines = code.split('\n')
-  const result: React.ReactNode[] = []
+  const result: ReactNode[] = []
   let globalKey = 0
 
   const tokenRegex = /([a-zA-Z_$][a-zA-Z0-9_$]*)|([{}\[\]()=;,:])|(".+?")|( +)/g
