@@ -19,6 +19,7 @@ export interface CurlOptions {
 export function execCurl(options: CurlOptions): Promise<CurlResult> {
   return new Promise((resolve, reject) => {
     const { method, url, headers, body } = options
+    const curlTimeoutMs = 30000
 
     const headerArgs: string[] = []
     if (headers && typeof headers === 'object') {
@@ -29,7 +30,16 @@ export function execCurl(options: CurlOptions): Promise<CurlResult> {
       })
     }
 
-    const args = ['-i', '-s', '-X', method.toUpperCase(), String(url), ...headerArgs]
+    const args = [
+      '-i',
+      '-s',
+      '--max-time',
+      String(curlTimeoutMs / 1000),
+      '-X',
+      method.toUpperCase(),
+      String(url),
+      ...headerArgs,
+    ]
 
     if (body) {
       args.push('--data-raw', typeof body === 'string' ? body : JSON.stringify(body))
@@ -40,11 +50,44 @@ export function execCurl(options: CurlOptions): Promise<CurlResult> {
     const curl = spawn('curl', args)
     let stdout = ''
     let stderr = ''
+    let settled = false
+    let didTimeout = false
+
+    const timeout = setTimeout(() => {
+      if (settled) {
+        return
+      }
+
+      didTimeout = true
+      curl.kill('SIGKILL')
+    }, curlTimeoutMs)
 
     curl.stdout.on('data', (chunk) => { stdout += chunk.toString() })
     curl.stderr.on('data', (chunk) => { stderr += chunk.toString() })
 
+    curl.on('error', (error) => {
+      if (settled) {
+        return
+      }
+
+      settled = true
+      clearTimeout(timeout)
+      reject(error)
+    })
+
     curl.on('close', (code) => {
+      if (settled) {
+        return
+      }
+
+      settled = true
+      clearTimeout(timeout)
+
+      if (didTimeout) {
+        reject(new Error(`curl request timed out after ${curlTimeoutMs}ms`))
+        return
+      }
+
       if (code !== 0) {
         reject(new Error(stderr || stdout))
         return
