@@ -11,5 +11,9 @@ export function loadState(): Partial<SavedState> {
 }
 
 export function saveState(state: SavedState): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  } catch {
+    // Ignore persistence failures to match loadState's fault-tolerant behavior.
+  }
 }
