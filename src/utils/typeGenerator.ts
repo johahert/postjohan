@@ -3,9 +3,15 @@ export function capitalize(s: string): string {
 }
 
 export function toInterfaceName(key: string): string {
-  return capitalize(
+  const normalized = capitalize(
     key.replace(/[^a-zA-Z0-9]+(.)/g, (_, ch) => ch.toUpperCase()).replace(/[^a-zA-Z0-9]/g, ''),
   )
+
+  if (normalized.length === 0) {
+    return 'Response'
+  }
+
+  return /^[0-9]/.test(normalized) ? `_${normalized}` : normalized
 }
 
 export function generateTypesFromJson(
