@@ -16,6 +16,7 @@ export function AppHeader({ darkMode, onToggleDarkMode }: AppHeaderProps) {
         onClick={onToggleDarkMode}
         className="flex h-9 w-9 items-center justify-center rounded-full bg-white/70 text-lg shadow-sm ring-1 ring-slate-200 transition hover:ring-indigo-300 dark:bg-slate-800 dark:ring-slate-700 dark:hover:ring-indigo-600"
         title="Toggle theme"
+        aria-label="Toggle theme"
       >
         {darkMode ? '☀️' : '🌙'}
       </button>
