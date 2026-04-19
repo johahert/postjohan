@@ -41,6 +41,7 @@ export function KVEditor({
           />
           <button
             onClick={() => onRemove(index)}
+            aria-label="Remove item"
             className="rounded px-2 py-1 text-xs font-semibold text-slate-400 transition hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400"
           >
             ✕
