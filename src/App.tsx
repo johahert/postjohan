@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { HistoryEntry, ResponseData } from './types'
 import { METHODS, defaultAuth } from './constants'
 import { useDarkMode } from './hooks/useDarkMode'
@@ -30,10 +30,14 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [isSending, setIsSending] = useState(false)
   const [showTypesModal, setShowTypesModal] = useState(false)
+  const hasLoadedConfig = useRef(false)
 
   // ── Load auth profiles from config.json on startup ───────────────────
 
   useEffect(() => {
+    if (hasLoadedConfig.current) return
+    hasLoadedConfig.current = true
+
     fetchConfig()
       .then((cfg) => {
         if (cfg.profiles && cfg.profiles.length > 0) {
@@ -46,8 +50,7 @@ function App() {
         }
       })
       .catch(() => { /* config file may not exist yet */ })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [auth.setProfiles, auth.setActiveProfileId, auth.setAuth])
 
   // ── Persist auth profiles to config.json on changes (debounced) ──────
 
