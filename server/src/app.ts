@@ -22,7 +22,7 @@ export function createApp(staticDir?: string, configDir?: string) {
 
   // In production, serve index.html for any non-API route (SPA fallback)
   if (staticDir) {
-    app.get('/{*splat}', (_req, res) => {
+    app.get(/^(?!\/api(?:\/|$)).*/, (_req, res) => {
       res.sendFile(path.join(staticDir, 'index.html'))
     })
   }
