@@ -15,9 +15,10 @@ export async function persistConfig(
   profiles: AuthProfile[],
   activeProfileId: string | null,
 ): Promise<void> {
-  await fetch('/api/config', {
+  const res = await fetch('/api/config', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ profiles, activeProfileId }),
   })
+  if (!res.ok) throw new Error('Failed to persist config')
 }
