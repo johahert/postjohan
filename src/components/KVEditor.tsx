@@ -1,4 +1,11 @@
+import type { CSSProperties } from 'react'
 import type { KVEntry } from '../types'
+
+const inputStyle: CSSProperties = {
+  height: 32, flex: 1, background: 'var(--bg2)', border: '1px solid var(--border)',
+  borderRadius: 5, padding: '0 10px', color: 'var(--text0)',
+  fontFamily: "'JetBrains Mono',monospace", fontSize: 12, outline: 'none',
+}
 
 interface KVEditorProps {
   items: KVEntry[]
@@ -18,41 +25,49 @@ export function KVEditor({
   valuePlaceholder = 'Value',
 }: KVEditorProps) {
   return (
-    <div className="mt-4 space-y-2">
+    <div style={{ padding: '12px 16px' }}>
       {items.map((entry, index) => (
-        <div key={index} className="flex items-center gap-2">
+        <div key={index} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
           <input
             type="checkbox"
             checked={entry.enabled}
             onChange={(e) => onChange(index, 'enabled', e.target.checked)}
-            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 dark:border-slate-600 dark:bg-slate-700"
+            style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
           />
           <input
             value={entry.key}
             onChange={(e) => onChange(index, 'key', e.target.value)}
             placeholder={keyPlaceholder}
-            className="h-10 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:focus:border-indigo-500"
+            style={inputStyle}
           />
           <input
             value={entry.value}
             onChange={(e) => onChange(index, 'value', e.target.value)}
             placeholder={valuePlaceholder}
-            className="h-10 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:focus:border-indigo-500"
+            style={inputStyle}
           />
           <button
             onClick={() => onRemove(index)}
             aria-label="Remove item"
-            className="rounded px-2 py-1 text-xs font-semibold text-slate-400 transition hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400"
+            style={{ background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 15, padding: '0 4px', transition: 'color 0.15s' }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#cc5c5c' }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text2)' }}
           >
-            ✕
+            ×
           </button>
         </div>
       ))}
       <button
         onClick={onAdd}
-        className="rounded-lg border border-dashed border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 transition hover:border-indigo-300 hover:text-indigo-500 dark:border-slate-600 dark:text-slate-400 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
+        style={{
+          background: 'none', border: '1px dashed var(--border2)', color: 'var(--text2)',
+          borderRadius: 5, padding: '5px 12px', cursor: 'pointer',
+          fontSize: 12, fontFamily: "'Inter',sans-serif", marginTop: 4, transition: 'all 0.15s',
+        }}
+        onMouseEnter={(e) => { const el = e.currentTarget as HTMLButtonElement; el.style.color = 'var(--accent)'; el.style.borderColor = 'var(--accent)' }}
+        onMouseLeave={(e) => { const el = e.currentTarget as HTMLButtonElement; el.style.color = 'var(--text2)'; el.style.borderColor = 'var(--border2)' }}
       >
-        + Add
+        + Add row
       </button>
     </div>
   )

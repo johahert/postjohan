@@ -48,4 +48,6 @@ export type SavedState = {
   profiles: AuthProfile[]
   activeProfileId: string | null
   darkMode: boolean
+  theme?: string
+  accentColor?: string
 }

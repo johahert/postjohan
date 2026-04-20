@@ -1,4 +1,16 @@
+import type { CSSProperties } from 'react'
 import type { AuthConfig, AuthProfile, AuthType } from '../types'
+
+const inputStyle: CSSProperties = {
+  height: 32, width: '100%', background: 'var(--bg2)', border: '1px solid var(--border)',
+  borderRadius: 5, padding: '0 10px', color: 'var(--text0)',
+  fontFamily: "'JetBrains Mono',monospace", fontSize: 12, outline: 'none',
+}
+
+const labelStyle: CSSProperties = {
+  display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--text2)',
+  textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5,
+}
 
 interface AuthEditorProps {
   auth: AuthConfig
@@ -13,74 +25,78 @@ interface AuthEditorProps {
 }
 
 export function AuthEditor({
-  auth,
-  onAuthChange,
-  profiles,
-  activeProfileId,
-  profileName,
-  onProfileNameChange,
-  onSaveProfile,
-  onLoadProfile,
-  onDeleteProfile,
+  auth, onAuthChange, profiles, activeProfileId,
+  profileName, onProfileNameChange, onSaveProfile, onLoadProfile, onDeleteProfile,
 }: AuthEditorProps) {
   return (
-    <div className="mt-4 space-y-4">
+    <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Profiles */}
-      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-600 dark:bg-slate-700/50">
-        <p className="mb-2 text-xs font-semibold uppercase text-slate-400 dark:text-slate-500">
+      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 6, padding: '12px 14px' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
           Profiles
-        </p>
-        <div className="flex flex-wrap gap-2">
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
           {profiles.map((p) => (
             <div
               key={p.id}
-              className={`flex items-center gap-1 rounded-full border px-3 py-1 text-xs transition ${
-                activeProfileId === p.id
-                  ? 'border-indigo-300 bg-indigo-50 text-indigo-600 dark:border-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400'
-                  : 'border-slate-200 bg-white text-slate-600 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-300'
-              }`}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px',
+                borderRadius: 20, border: '1px solid',
+                borderColor: activeProfileId === p.id ? 'var(--accent)' : 'var(--border2)',
+                background: activeProfileId === p.id ? 'var(--accent-dim)' : 'var(--bg3)',
+                fontSize: 11,
+              }}
             >
-              <button onClick={() => onLoadProfile(p.id)} className="font-medium">
+              <button
+                onClick={() => onLoadProfile(p.id)}
+                style={{ background: 'none', border: 'none', color: activeProfileId === p.id ? 'var(--accent)' : 'var(--text1)', cursor: 'pointer', fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 500, padding: 0 }}
+              >
                 {p.name}
               </button>
               <button
                 onClick={() => onDeleteProfile(p.id)}
-                className="ml-1 text-slate-400 hover:text-rose-500 dark:text-slate-500 dark:hover:text-rose-400"
+                style={{ background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 12, padding: '0 2px', lineHeight: 1 }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#cc5c5c' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text2)' }}
               >
-                ✕
+                ×
               </button>
             </div>
           ))}
           {profiles.length === 0 && (
-            <span className="text-xs text-slate-400 dark:text-slate-500">No saved profiles</span>
+            <span style={{ fontSize: 11, color: 'var(--text2)', fontStyle: 'italic' }}>No saved profiles</span>
           )}
         </div>
-        <div className="mt-2 flex gap-2">
+        <div style={{ display: 'flex', gap: 7 }}>
           <input
             value={profileName}
             onChange={(e) => onProfileNameChange(e.target.value)}
             placeholder="Profile name"
-            className="h-8 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-700 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+            style={{ ...inputStyle, flex: 1 }}
           />
           <button
             onClick={onSaveProfile}
             disabled={!profileName.trim()}
-            className="h-8 rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white transition hover:bg-indigo-500 disabled:bg-slate-300 dark:disabled:bg-slate-600"
+            style={{
+              background: profileName.trim() ? 'var(--accent)' : 'var(--bg3)',
+              color: profileName.trim() ? 'var(--bg0)' : 'var(--text2)',
+              border: 'none', borderRadius: 5, padding: '0 12px',
+              fontSize: 11, fontWeight: 600, cursor: profileName.trim() ? 'pointer' : 'not-allowed',
+              fontFamily: "'Inter',sans-serif", height: 32, whiteSpace: 'nowrap',
+            }}
           >
-            Save current
+            Save
           </button>
         </div>
       </div>
 
       {/* Auth type */}
       <div>
-        <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
-          Type
-        </label>
+        <label style={labelStyle}>Auth Type</label>
         <select
           value={auth.type}
           onChange={(e) => onAuthChange({ ...auth, type: e.target.value as AuthType })}
-          className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+          style={{ ...inputStyle, cursor: 'pointer' }}
         >
           <option value="none">No Auth</option>
           <option value="bearer">Bearer Token</option>
@@ -91,64 +107,54 @@ export function AuthEditor({
 
       {auth.type === 'bearer' && (
         <div>
-          <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
-            Token
-          </label>
+          <label style={labelStyle}>Token</label>
           <input
             value={auth.bearer}
             onChange={(e) => onAuthChange({ ...auth, bearer: e.target.value })}
             placeholder="Paste your token"
-            className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+            style={inputStyle}
           />
         </div>
       )}
 
       {auth.type === 'basic' && (
-        <div className="grid grid-cols-2 gap-3">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Username
-            </label>
+            <label style={labelStyle}>Username</label>
             <input
               value={auth.basicUser}
               onChange={(e) => onAuthChange({ ...auth, basicUser: e.target.value })}
-              className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+              style={inputStyle}
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Password
-            </label>
+            <label style={labelStyle}>Password</label>
             <input
               type="password"
               value={auth.basicPass}
               onChange={(e) => onAuthChange({ ...auth, basicPass: e.target.value })}
-              className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+              style={inputStyle}
             />
           </div>
         </div>
       )}
 
       {auth.type === 'api-key' && (
-        <div className="grid grid-cols-2 gap-3">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Header Name
-            </label>
+            <label style={labelStyle}>Header Name</label>
             <input
               value={auth.apiKeyHeader}
               onChange={(e) => onAuthChange({ ...auth, apiKeyHeader: e.target.value })}
-              className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+              style={inputStyle}
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold text-slate-500 dark:text-slate-400">
-              Value
-            </label>
+            <label style={labelStyle}>Value</label>
             <input
               value={auth.apiKeyValue}
               onChange={(e) => onAuthChange({ ...auth, apiKeyValue: e.target.value })}
-              className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
+              style={inputStyle}
             />
           </div>
         </div>
