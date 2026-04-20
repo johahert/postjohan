@@ -1,16 +1,7 @@
-import type { CSSProperties } from 'react'
 import type { AuthConfig, AuthProfile, AuthType } from '../types'
 
-const inputStyle: CSSProperties = {
-  height: 32, width: '100%', background: 'var(--bg2)', border: '1px solid var(--border)',
-  borderRadius: 5, padding: '0 10px', color: 'var(--text0)',
-  fontFamily: "'JetBrains Mono',monospace", fontSize: 12, outline: 'none',
-}
-
-const labelStyle: CSSProperties = {
-  display: 'block', fontSize: 10, fontWeight: 600, color: 'var(--text2)',
-  textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5,
-}
+const inputCls = 'w-full h-8 bg-layer-2 border border-edge rounded-[5px] px-2.5 text-ink font-mono text-[12px] outline-none placeholder-ink-3'
+const labelCls = 'block text-[10px] font-semibold text-ink-3 uppercase tracking-[0.08em] mb-1.5'
 
 interface AuthEditorProps {
   auth: AuthConfig
@@ -29,74 +20,59 @@ export function AuthEditor({
   profileName, onProfileNameChange, onSaveProfile, onLoadProfile, onDeleteProfile,
 }: AuthEditorProps) {
   return (
-    <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* Profiles */}
-      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 6, padding: '12px 14px' }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-          Profiles
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-          {profiles.map((p) => (
-            <div
-              key={p.id}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px',
-                borderRadius: 20, border: '1px solid',
-                borderColor: activeProfileId === p.id ? 'var(--accent)' : 'var(--border2)',
-                background: activeProfileId === p.id ? 'var(--accent-dim)' : 'var(--bg3)',
-                fontSize: 11,
-              }}
-            >
-              <button
-                onClick={() => onLoadProfile(p.id)}
-                style={{ background: 'none', border: 'none', color: activeProfileId === p.id ? 'var(--accent)' : 'var(--text1)', cursor: 'pointer', fontFamily: "'Inter',sans-serif", fontSize: 11, fontWeight: 500, padding: 0 }}
+    <div className="px-4 py-3 flex flex-col gap-4">
+      {/* Saved profiles */}
+      <div className="bg-layer-2 border border-edge rounded-[6px] p-3">
+        <p className="text-[10px] font-semibold text-ink-3 uppercase tracking-[0.08em] mb-2">Profiles</p>
+
+        <div className="flex flex-wrap gap-1.5 mb-2.5">
+          {profiles.length === 0 ? (
+            <span className="text-[11px] text-ink-3 italic">No saved profiles</span>
+          ) : (
+            profiles.map((p) => (
+              <span
+                key={p.id}
+                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px]
+                  ${activeProfileId === p.id
+                    ? 'border-accent bg-accent-dim text-accent'
+                    : 'border-edge-strong bg-layer-3 text-ink-2'}`}
               >
-                {p.name}
-              </button>
-              <button
-                onClick={() => onDeleteProfile(p.id)}
-                style={{ background: 'none', border: 'none', color: 'var(--text2)', cursor: 'pointer', fontSize: 12, padding: '0 2px', lineHeight: 1 }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#cc5c5c' }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text2)' }}
-              >
-                ×
-              </button>
-            </div>
-          ))}
-          {profiles.length === 0 && (
-            <span style={{ fontSize: 11, color: 'var(--text2)', fontStyle: 'italic' }}>No saved profiles</span>
+                <button onClick={() => onLoadProfile(p.id)} className="font-medium">{p.name}</button>
+                <button
+                  onClick={() => onDeleteProfile(p.id)}
+                  className="text-ink-3 hover:text-red-400 text-[12px] leading-none transition-colors"
+                >
+                  ×
+                </button>
+              </span>
+            ))
           )}
         </div>
-        <div style={{ display: 'flex', gap: 7 }}>
+
+        <div className="flex gap-2">
           <input
             value={profileName}
             onChange={(e) => onProfileNameChange(e.target.value)}
             placeholder="Profile name"
-            style={{ ...inputStyle, flex: 1 }}
+            className="flex-1 h-8 bg-layer-1 border border-edge rounded-[5px] px-2.5 text-ink font-mono text-[12px] outline-none placeholder-ink-3 min-w-0"
           />
           <button
             onClick={onSaveProfile}
             disabled={!profileName.trim()}
-            style={{
-              background: profileName.trim() ? 'var(--accent)' : 'var(--bg3)',
-              color: profileName.trim() ? 'var(--bg0)' : 'var(--text2)',
-              border: 'none', borderRadius: 5, padding: '0 12px',
-              fontSize: 11, fontWeight: 600, cursor: profileName.trim() ? 'pointer' : 'not-allowed',
-              fontFamily: "'Inter',sans-serif", height: 32, whiteSpace: 'nowrap',
-            }}
+            className="h-8 px-3 rounded-[5px] bg-accent text-[var(--bg0)] font-semibold text-[11px] font-sans transition-all disabled:bg-layer-3 disabled:text-ink-3 disabled:cursor-not-allowed"
           >
             Save
           </button>
         </div>
       </div>
 
-      {/* Auth type */}
+      {/* Auth type select */}
       <div>
-        <label style={labelStyle}>Auth Type</label>
+        <label className={labelCls}>Auth Type</label>
         <select
           value={auth.type}
           onChange={(e) => onAuthChange({ ...auth, type: e.target.value as AuthType })}
-          style={{ ...inputStyle, cursor: 'pointer' }}
+          className={inputCls + ' cursor-pointer'}
         >
           <option value="none">No Auth</option>
           <option value="bearer">Bearer Token</option>
@@ -107,54 +83,54 @@ export function AuthEditor({
 
       {auth.type === 'bearer' && (
         <div>
-          <label style={labelStyle}>Token</label>
+          <label className={labelCls}>Token</label>
           <input
             value={auth.bearer}
             onChange={(e) => onAuthChange({ ...auth, bearer: e.target.value })}
             placeholder="Paste your token"
-            style={inputStyle}
+            className={inputCls}
           />
         </div>
       )}
 
       {auth.type === 'basic' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label style={labelStyle}>Username</label>
+            <label className={labelCls}>Username</label>
             <input
               value={auth.basicUser}
               onChange={(e) => onAuthChange({ ...auth, basicUser: e.target.value })}
-              style={inputStyle}
+              className={inputCls}
             />
           </div>
           <div>
-            <label style={labelStyle}>Password</label>
+            <label className={labelCls}>Password</label>
             <input
               type="password"
               value={auth.basicPass}
               onChange={(e) => onAuthChange({ ...auth, basicPass: e.target.value })}
-              style={inputStyle}
+              className={inputCls}
             />
           </div>
         </div>
       )}
 
       {auth.type === 'api-key' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div className="grid grid-cols-2 gap-3">
           <div>
-            <label style={labelStyle}>Header Name</label>
+            <label className={labelCls}>Header Name</label>
             <input
               value={auth.apiKeyHeader}
               onChange={(e) => onAuthChange({ ...auth, apiKeyHeader: e.target.value })}
-              style={inputStyle}
+              className={inputCls}
             />
           </div>
           <div>
-            <label style={labelStyle}>Value</label>
+            <label className={labelCls}>Value</label>
             <input
               value={auth.apiKeyValue}
               onChange={(e) => onAuthChange({ ...auth, apiKeyValue: e.target.value })}
-              style={inputStyle}
+              className={inputCls}
             />
           </div>
         </div>

@@ -1,30 +1,33 @@
 import { FalconMark } from './FalconSVG'
 
-const THEME_LABELS: Record<string, string> = {
-  'falcon-dark': 'Falcon Dark',
-  'falcon-sky': 'Falcon Sky',
-  'dark-forest': 'Forest Dark',
-  'dark-ocean': 'Ocean Dark',
-}
+const THEME_OPTIONS = [
+  { value: 'falcon-dark', label: 'Falcon Dark' },
+  { value: 'falcon-sky',  label: 'Falcon Sky'  },
+  { value: 'dark-forest', label: 'Forest Dark'  },
+  { value: 'dark-ocean',  label: 'Ocean Dark'   },
+]
 
 interface AppHeaderProps {
   theme: string
   accentColor: string
   accent: string
-  accentDim: string
+  accentInk: string
+  accents: Record<string, string>          // key → hex value
   onToggleTheme: () => void
   onThemeChange: (t: string) => void
   onAccentChange: (a: string) => void
-  accentOptions: Record<string, { a: string }>
 }
 
 function MoonSun({ isLight }: { isLight: boolean }) {
   return isLight ? (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <circle cx="12" cy="12" r="5" />
-      <line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" />
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-      <line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="12" y1="1"  x2="12" y2="3"  />
+      <line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22"  y1="4.22"  x2="5.64"  y2="5.64"  />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1"  y1="12" x2="3"  y2="12" />
+      <line x1="21" y1="12" x2="23" y2="12" />
     </svg>
   ) : (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -34,100 +37,76 @@ function MoonSun({ isLight }: { isLight: boolean }) {
 }
 
 export function AppHeader({
-  theme,
-  accentColor,
-  accent,
-  accentDim,
-  onToggleTheme,
-  onThemeChange,
-  onAccentChange,
-  accentOptions,
+  theme, accentColor, accent, accentInk, accents,
+  onToggleTheme, onThemeChange, onAccentChange,
 }: AppHeaderProps) {
   const isLight = theme === 'falcon-sky'
 
   return (
-    <div style={{
-      height: 46, borderBottom: '1px solid var(--border)',
-      display: 'flex', alignItems: 'center', padding: '0 16px', gap: 10,
-      flexShrink: 0, background: 'var(--bg1)',
-    }}>
-      {/* Brand */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 8 }}>
+    <header className="h-topbar border-b border-edge bg-layer-1 flex items-center px-4 gap-2 shrink-0">
+      {/* Brand mark */}
+      <div className="flex items-center gap-2 mr-2">
         <FalconMark size={20} color={accent} />
-        <span style={{ fontWeight: 800, fontSize: 15, letterSpacing: '-0.03em', color: 'var(--text0)' }}>Falcon</span>
-        <span style={{
-          background: accentDim, color: accent,
-          fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 2, letterSpacing: '0.07em',
-        }}>API</span>
+        <span className="font-bold text-[15px] tracking-tight text-ink">Falcon</span>
+        <span className="text-[9px] font-bold px-1.5 py-px rounded-sm tracking-[0.07em] text-accent bg-accent-dim">
+          API
+        </span>
       </div>
 
       {/* Nav links */}
-      {['Collections', 'Environments', 'History'].map((n) => (
+      {(['Collections', 'Environments', 'History'] as const).map((label) => (
         <button
-          key={n}
-          style={{ background: 'none', border: 'none', color: 'var(--text2)', fontFamily: "'Inter',sans-serif", fontSize: 12, cursor: 'pointer', padding: '4px 8px', transition: 'color 0.15s' }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text0)' }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text2)' }}
+          key={label}
+          className="text-ink-3 hover:text-ink text-xs px-2 py-1 transition-colors font-sans"
         >
-          {n}
+          {label}
         </button>
       ))}
 
-      <div style={{ flex: 1 }} />
+      <div className="flex-1" />
 
       {/* Theme selector */}
       <select
         value={theme}
         onChange={(e) => onThemeChange(e.target.value)}
-        style={{
-          background: 'var(--bg2)', border: '1px solid var(--border)', color: 'var(--text1)',
-          borderRadius: 5, padding: '4px 10px', fontFamily: "'Inter',sans-serif", fontSize: 12,
-          cursor: 'pointer', outline: 'none',
-        }}
+        className="bg-layer-2 border border-edge text-ink-2 rounded-[5px] px-2.5 py-1 text-xs cursor-pointer outline-none font-sans"
       >
-        {Object.entries(THEME_LABELS).map(([k, v]) => (
-          <option key={k} value={k}>{v}</option>
+        {THEME_OPTIONS.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
         ))}
       </select>
 
-      {/* Accent swatches */}
-      <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
-        {Object.entries(accentOptions).map(([k, v]) => (
-          <div
-            key={k}
-            onClick={() => onAccentChange(k)}
-            title={k}
+      {/* Accent colour swatches */}
+      <div className="flex items-center gap-1.5 px-1">
+        {Object.entries(accents).map(([key, hex]) => (
+          <button
+            key={key}
+            title={key}
+            onClick={() => onAccentChange(key)}
+            className="w-3.5 h-3.5 rounded-full transition-all focus:outline-none"
             style={{
-              width: 14, height: 14, borderRadius: '50%', background: v.a, cursor: 'pointer',
-              border: accentColor === k ? `2.5px solid var(--text0)` : '2px solid transparent',
-              boxSizing: 'border-box', transition: 'border 0.15s',
+              background: hex,
+              border: accentColor === key ? `2.5px solid var(--text0)` : '2px solid transparent',
             }}
           />
         ))}
       </div>
 
-      {/* Dark/light toggle */}
+      {/* Light / dark toggle */}
       <button
         onClick={onToggleTheme}
-        style={{
-          width: 30, height: 30, borderRadius: 6, background: 'var(--bg2)',
-          border: '1px solid var(--border)', color: 'var(--text1)', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s',
-        }}
-        onMouseEnter={(e) => { const el = e.currentTarget; el.style.borderColor = accent; el.style.color = accent }}
-        onMouseLeave={(e) => { const el = e.currentTarget; el.style.borderColor = 'var(--border)'; el.style.color = 'var(--text1)' }}
+        className="w-[30px] h-[30px] rounded-[6px] bg-layer-2 border border-edge text-ink-2 flex items-center justify-center transition-all hover:border-accent hover:text-accent"
       >
         <MoonSun isLight={isLight} />
       </button>
 
       {/* User avatar */}
-      <div style={{
-        width: 28, height: 28, borderRadius: '50%', background: accent,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 11, fontWeight: 700, color: '#1a0e00', cursor: 'pointer',
-      }}>
+      <div
+        className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold cursor-pointer select-none"
+        style={{ background: accent, color: accentInk }}
+      >
         JL
       </div>
-    </div>
+    </header>
   )
 }

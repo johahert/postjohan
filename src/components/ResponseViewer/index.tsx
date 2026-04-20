@@ -13,231 +13,192 @@ interface ResponseViewerProps {
   onShowTypesModal: (show: boolean) => void
   isSending: boolean
   isSendingStage: string
-  accent: string
 }
 
 function StatusBadge({ status }: { status: number }) {
-  const color = status < 300 ? '#5dbd7a' : status < 400 ? '#d4924a' : '#cc5c5c'
-  const bg = status < 300 ? 'rgba(93,189,122,0.12)' : status < 400 ? 'rgba(212,146,74,0.12)' : 'rgba(204,92,92,0.12)'
+  const isOk  = status < 300
+  const isRed = status >= 400
   return (
-    <span style={{
-      color, background: bg, padding: '2px 8px', borderRadius: 3,
-      fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, fontSize: 12,
-    }}>
+    <span
+      className={`font-mono font-semibold text-[12px] px-2 py-px rounded-sm
+        ${isOk  ? 'text-[#5dbd7a] bg-[rgba(93,189,122,0.12)]'  : ''}
+        ${isRed ? 'text-[#cc5c5c] bg-[rgba(204,92,92,0.12)]'   : ''}
+        ${!isOk && !isRed ? 'text-[#d4924a] bg-[rgba(212,146,74,0.12)]' : ''}`}
+    >
       {status}
     </span>
   )
 }
 
-function SkeletonRows({ count = 6 }: { count?: number }) {
+function SkeletonRows({ count = 8 }: { count?: number }) {
   return (
-    <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <div className="shimmer-line" style={{ width: 8 + (i % 3) * 4, height: 12, flexShrink: 0 }} />
+    <div className="p-5 flex flex-col gap-2.5">
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="flex gap-2 items-center">
+          <div className="shimmer-line shrink-0" style={{ width: 8 + (i % 3) * 4, height: 12 }} />
           <div className="shimmer-line" style={{ width: `${40 + (i * 17) % 45}%`, height: 12 }} />
-          <div className="shimmer-line" style={{ width: `${15 + (i * 11) % 25}%`, height: 12, marginLeft: 'auto' }} />
+          <div className="shimmer-line ml-auto" style={{ width: `${15 + (i * 11) % 25}%`, height: 12 }} />
         </div>
       ))}
     </div>
   )
 }
 
-function ResponseBody({ body, headers }: { body: string; headers: Record<string, string> }) {
-  if (!body) {
-    return <p style={{ fontSize: 12, color: 'var(--text2)', fontFamily: "'JetBrains Mono',monospace" }}>{'// No body returned'}</p>
-  }
-  const isJson = isJsonContentType(headers)
-  const parsed = isJson ? tryParseJson(body) : undefined
-  if (parsed !== undefined) {
-    return (
-      <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 12, color: 'var(--text0)' }}>
-        <JsonNode value={parsed} defaultOpen={true} />
-      </div>
-    )
-  }
+function ProgressStrip({ stage }: { stage: string }) {
   return (
-    <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all', fontFamily: "'JetBrains Mono',monospace", fontSize: 12, color: 'var(--text0)' }}>
-      {body}
-    </pre>
+    <div className="p-5 border-b border-edge">
+      <p className="text-[10px] font-mono text-ink-3 uppercase tracking-[0.08em] mb-3">
+        {stage === 'connecting' ? 'Establishing connection'
+         : stage === 'sending'  ? 'Transmitting request'
+         : 'Streaming response'}
+      </p>
+      <div className="flex gap-[2.5px]">
+        {Array.from({ length: 36 }, (_, i) => {
+          const filled = stage === 'connecting' ? i < 9
+                       : stage === 'sending'    ? i < 22
+                       : i < 30
+          return (
+            <div
+              key={i}
+              className={`flex-1 h-[3px] rounded-sm transition-colors duration-300
+                ${filled ? 'bg-accent' : 'bg-layer-3'}`}
+              style={{ transitionDelay: `${i * 0.018}s` }}
+            />
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
+function TickIndicator({ stage }: { stage: string }) {
+  return (
+    <div className="flex items-center gap-2 ml-1.5">
+      <div className="flex gap-[3px]">
+        {Array.from({ length: 14 }, (_, i) => (
+          <div
+            key={i}
+            className="w-[3px] h-[10px] rounded-sm bg-accent opacity-[0.15]"
+            style={{ animation: `tickPulse 1.6s ${(i / 14) * 1.6}s infinite` }}
+          />
+        ))}
+      </div>
+      <span className="text-[11px] font-mono text-ink-3">{stage}…</span>
+    </div>
+  )
+}
+
+type ResTab = 'body' | 'headers' | 'cookies'
+
 export function ResponseViewer({
-  response, error, finalUrl, showTypesModal, onShowTypesModal, isSending, isSendingStage, accent,
+  response, error, finalUrl, showTypesModal, onShowTypesModal,
+  isSending, isSendingStage,
 }: ResponseViewerProps) {
-  const [resTab, setResTab] = useState<'body' | 'headers' | 'cookies'>('body')
-  const parsedBody = response ? tryParseJson(response.body || '') : undefined
-
-  const stageName =
-    isSendingStage === 'connecting' ? 'Establishing connection' :
-    isSendingStage === 'sending' ? 'Transmitting request' : 'Streaming response'
-
-  const stageLabel =
-    isSendingStage === 'connecting' ? 'connecting' :
-    isSendingStage === 'sending' ? 'sending' : 'receiving'
+  const [resTab, setResTab] = useState<ResTab>('body')
+  const parsedBody = response ? tryParseJson(response.body ?? '') : undefined
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {/* Header bar */}
-      <div style={{
-        display: 'flex', alignItems: 'center', padding: '0 16px',
-        borderBottom: '1px solid var(--border)', flexShrink: 0,
-        background: 'var(--bg1)', gap: 8, height: 40,
-      }}>
-        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text0)' }}>Response</span>
+    <div className="flex flex-col flex-1 overflow-hidden">
+      {/* Header row */}
+      <div className="h-10 border-b border-edge bg-layer-1 flex items-center px-4 gap-2 shrink-0">
+        <span className="text-[12px] font-medium text-ink">Response</span>
 
+        {/* Status + timing */}
         {response && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 6 }}>
+          <div className="flex items-center gap-2.5 ml-1.5">
             <StatusBadge status={response.statusCode} />
-            <span style={{ color: 'var(--text2)', fontSize: 11, fontFamily: "'JetBrains Mono',monospace" }}>
-              {response.statusText}
-            </span>
-            <span style={{ color: 'var(--text2)', fontSize: 11 }}>·</span>
-            <span style={{ color: 'var(--text1)', fontSize: 11, fontFamily: "'JetBrains Mono',monospace" }}>
-              {response.timeTotal}ms
-            </span>
-            <span style={{ color: 'var(--text2)', fontSize: 11 }}>·</span>
-            <span style={{ color: 'var(--text1)', fontSize: 11, fontFamily: "'JetBrains Mono',monospace" }}>
+            <span className="text-[11px] font-mono text-ink-3">{response.statusText}</span>
+            <span className="text-[11px] text-edge-strong">·</span>
+            <span className="text-[11px] font-mono text-ink-2">{response.timeTotal}ms</span>
+            <span className="text-[11px] text-edge-strong">·</span>
+            <span className="text-[11px] font-mono text-ink-2">
               {(response.sizeDownload / 1024).toFixed(2)} KB
             </span>
           </div>
         )}
 
-        {isSending && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 6 }}>
-            <div style={{ display: 'flex', gap: 3 }}>
-              {Array.from({ length: 14 }, (_, i) => (
-                <div key={i} style={{
-                  width: 3, height: 10, borderRadius: 1, background: accent,
-                  animation: `tickPulse 1.6s ${(i / 14) * 1.6}s infinite`, opacity: 0.15,
-                }} />
-              ))}
-            </div>
-            <span style={{ color: 'var(--text2)', fontSize: 11, fontFamily: "'JetBrains Mono',monospace" }}>
-              {stageLabel}…
-            </span>
-          </div>
-        )}
+        {/* Loading tick indicator */}
+        {isSending && <TickIndicator stage={isSendingStage} />}
 
-        <div style={{ flex: 1 }} />
+        <div className="flex-1" />
 
+        {/* TS Types button */}
         {response && parsedBody !== undefined && (
           <button
             onClick={() => onShowTypesModal(true)}
-            style={{
-              background: 'var(--bg2)', border: '1px solid var(--border)', color: accent,
-              borderRadius: 4, padding: '3px 10px', fontSize: 10, fontWeight: 600,
-              cursor: 'pointer', fontFamily: "'Inter',sans-serif",
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = accent }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)' }}
+            className="bg-layer-2 border border-edge text-accent rounded px-2.5 py-[3px] text-[10px] font-semibold font-sans hover:border-accent transition-colors"
           >
             {'{ } TS Types'}
           </button>
         )}
 
-        {response && (
-          <div style={{ display: 'flex' }}>
-            {(['body', 'headers', 'cookies'] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setResTab(t)}
-                style={{
-                  padding: '8px 12px', background: 'none', border: 'none',
-                  color: resTab === t ? 'var(--text0)' : 'var(--text2)',
-                  fontFamily: "'Inter',sans-serif", fontSize: 12, cursor: 'pointer',
-                  borderBottom: resTab === t ? `2px solid ${accent}` : '2px solid transparent',
-                  marginBottom: -1, textTransform: 'capitalize', fontWeight: resTab === t ? 500 : 400,
-                }}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Response sub-tabs */}
+        {response && (['body', 'headers', 'cookies'] as ResTab[]).map((t) => (
+          <button
+            key={t}
+            onClick={() => setResTab(t)}
+            className={`px-3 py-[8px] -my-px text-[12px] font-sans border-b-2 transition-colors capitalize
+              ${resTab === t
+                ? 'text-ink border-accent font-medium'
+                : 'text-ink-3 border-transparent hover:text-ink-2'}`}
+          >
+            {t}
+          </button>
+        ))}
       </div>
 
-      {/* Body area */}
-      <div style={{ flex: 1, overflow: 'auto', background: 'var(--bg0)' }}>
+      {/* Body */}
+      <div className="flex-1 overflow-auto bg-layer-0">
+        {/* Empty state */}
         {!isSending && !response && !error && (
-          <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', height: '100%', gap: 16,
-          }}>
-            <FalconSVG size={64} color={accent} />
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 13, color: 'var(--text1)', fontWeight: 500, marginBottom: 4 }}>Ready to send</div>
-              <div style={{ fontSize: 12, color: 'var(--text2)' }}>
+          <div className="flex flex-col items-center justify-center h-full gap-4">
+            <FalconSVG size={64} color="var(--accent)" />
+            <div className="text-center">
+              <p className="text-[13px] font-medium text-ink-2 mb-1">Ready to send</p>
+              <p className="text-[12px] text-ink-3">
                 Press{' '}
-                <kbd style={{
-                  background: 'var(--bg2)', border: '1px solid var(--border)',
-                  borderRadius: 3, padding: '2px 6px', fontFamily: "'JetBrains Mono',monospace", fontSize: 11,
-                }}>
+                <kbd className="bg-layer-2 border border-edge rounded px-1.5 py-px font-mono text-[11px]">
                   ⌘ Enter
                 </kbd>{' '}
                 to fire
-              </div>
+              </p>
             </div>
           </div>
         )}
 
+        {/* Error */}
         {error && (
-          <div style={{
-            margin: '16px 24px', borderRadius: 6, border: '1px solid rgba(204,92,92,0.3)',
-            background: 'rgba(204,92,92,0.08)', padding: '12px 16px',
-            color: '#cc5c5c', fontSize: 12, fontFamily: "'JetBrains Mono',monospace",
-          }}>
+          <div className="m-4 rounded-[6px] border border-[rgba(204,92,92,0.3)] bg-[rgba(204,92,92,0.08)] p-3 text-[#cc5c5c] text-[12px] font-mono">
             {error}
           </div>
         )}
 
+        {/* Loading */}
         {isSending && (
           <div className="anim-fade-in">
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)' }}>
-              <div style={{
-                fontSize: 10, color: 'var(--text2)', fontFamily: "'JetBrains Mono',monospace",
-                textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12,
-              }}>
-                {stageName}
-              </div>
-              <div style={{ display: 'flex', gap: 2.5 }}>
-                {Array.from({ length: 36 }, (_, i) => {
-                  const filled = isSendingStage === 'connecting' ? i < 9 : isSendingStage === 'sending' ? i < 22 : i < 30
-                  return (
-                    <div key={i} style={{
-                      flex: 1, height: 3, borderRadius: 1,
-                      background: filled ? accent : 'var(--bg3)',
-                      transition: 'background 0.35s ease',
-                      transitionDelay: `${i * 0.018}s`,
-                    }} />
-                  )
-                })}
-              </div>
-            </div>
-            <SkeletonRows count={8} />
+            <ProgressStrip stage={isSendingStage} />
+            <SkeletonRows />
           </div>
         )}
 
+        {/* Response content */}
         {!isSending && response && (
-          <div className="anim-slide-up" style={{ padding: '16px 24px' }}>
+          <div className="anim-slide-up p-5">
             {resTab === 'body' && (
-              <ResponseBody body={response.body || ''} headers={response.headers} />
+              <ResponseBody body={response.body ?? ''} headers={response.headers} />
             )}
             {resTab === 'headers' && (
-              <div style={{ fontFamily: "'JetBrains Mono',monospace", fontSize: 12 }}>
+              <div className="font-mono text-[12px] divide-y divide-edge">
                 {Object.entries(response.headers).map(([k, v]) => (
-                  <div key={k} style={{ display: 'flex', gap: 16, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-                    <span style={{ color: '#5ab4d8', minWidth: 220 }}>{k}</span>
-                    <span style={{ color: 'var(--text1)' }}>{v}</span>
+                  <div key={k} className="flex gap-4 py-2">
+                    <span className="text-[#5ab4d8] w-56 shrink-0">{k}</span>
+                    <span className="text-ink-2">{v}</span>
                   </div>
                 ))}
               </div>
             )}
             {resTab === 'cookies' && (
-              <div style={{ color: 'var(--text2)', fontSize: 12, fontFamily: "'JetBrains Mono',monospace" }}>
-                {'// No cookies in response'}
-              </div>
+              <p className="text-ink-3 text-[12px] font-mono">{'// No cookies in response'}</p>
             )}
           </div>
         )}
@@ -247,5 +208,24 @@ export function ResponseViewer({
         <TypesModal json={parsedBody} url={finalUrl} onClose={() => onShowTypesModal(false)} />
       )}
     </div>
+  )
+}
+
+function ResponseBody({ body, headers }: { body: string; headers: Record<string, string> }) {
+  if (!body) {
+    return <p className="text-[12px] text-ink-3 font-mono">{'// No body returned'}</p>
+  }
+  const parsed = isJsonContentType(headers) ? tryParseJson(body) : undefined
+  if (parsed !== undefined) {
+    return (
+      <div className="font-mono text-[12px] text-ink max-h-[500px] overflow-auto">
+        <JsonNode value={parsed} defaultOpen />
+      </div>
+    )
+  }
+  return (
+    <pre className="font-mono text-[12px] text-ink whitespace-pre-wrap break-words max-h-[500px] overflow-auto">
+      {body}
+    </pre>
   )
 }

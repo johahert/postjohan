@@ -3,7 +3,7 @@ import { METHODS, TABS, type Tab } from '../../constants'
 import { KVEditor } from '../KVEditor'
 import { AuthEditor } from '../AuthEditor'
 
-const METHOD_COLORS: Record<string, string> = {
+const METHOD_COLOR: Record<string, string> = {
   GET: '#5dbd7a', POST: '#5ab4d8', PUT: '#e09a4d', PATCH: '#9d7fe0', DELETE: '#cc5c5c',
 }
 
@@ -31,20 +31,13 @@ interface RequestBuilderProps {
   onSaveProfile: () => void
   onLoadProfile: (id: string) => void
   onDeleteProfile: (id: string) => void
-  accent: string
-  accentInk: string
-  isSendingStage: string
 }
 
-function kvAdd(items: KVEntry[]): KVEntry[] {
-  return [...items, { key: '', value: '', enabled: true }]
+function kvAdd(items: KVEntry[]): KVEntry[] { return [...items, { key: '', value: '', enabled: true }] }
+function kvSet(items: KVEntry[], i: number, f: keyof KVEntry, v: string | boolean) {
+  return items.map((e, idx) => idx === i ? { ...e, [f]: v } : e)
 }
-function kvChange(items: KVEntry[], index: number, field: keyof KVEntry, value: string | boolean): KVEntry[] {
-  return items.map((e, i) => (i === index ? { ...e, [field]: value } : e))
-}
-function kvRemove(items: KVEntry[], index: number): KVEntry[] {
-  return items.filter((_, i) => i !== index)
-}
+function kvDel(items: KVEntry[], i: number) { return items.filter((_, idx) => idx !== i) }
 
 export function RequestBuilder({
   method, onMethodChange, url, onUrlChange,
@@ -53,69 +46,50 @@ export function RequestBuilder({
   body, onBodyChange, auth, onAuthChange,
   profiles, activeProfileId, profileName, onProfileNameChange,
   onSaveProfile, onLoadProfile, onDeleteProfile,
-  accent, accentInk,
 }: RequestBuilderProps) {
-  const activeParamCount = params.filter((p) => p.enabled && p.key.trim()).length
+  const activeParamCount  = params.filter((p) => p.enabled && p.key.trim()).length
   const activeHeaderCount = headers.filter((h) => h.enabled && h.key.trim()).length
 
   return (
-    <div style={{ borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'var(--bg1)' }}>
-      {/* URL bar row */}
+    <div className="border-b border-edge bg-layer-1 shrink-0">
+      {/* URL row */}
       <div
-        style={{ display: 'flex', gap: 7, padding: '7px 16px' }}
+        className="flex gap-2 px-4 py-[7px]"
         onKeyDown={(e) => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') onSend() }}
       >
+        {/* Method selector */}
         <select
           value={method}
           onChange={(e) => onMethodChange(e.target.value as (typeof METHODS)[number])}
-          style={{
-            background: 'var(--bg2)', border: '1px solid var(--border)',
-            color: METHOD_COLORS[method] ?? 'var(--text0)',
-            fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, fontSize: 12,
-            borderRadius: 6, padding: '0 10px', cursor: 'pointer', outline: 'none', height: 36,
-          }}
+          className="h-9 bg-layer-2 border border-edge rounded-[6px] px-2.5 font-mono font-semibold text-[12px] cursor-pointer outline-none"
+          style={{ color: METHOD_COLOR[method] ?? 'var(--text0)' }}
         >
           {METHODS.map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
 
-        <div style={{
-          flex: 1, display: 'flex', alignItems: 'center',
-          background: 'var(--bg2)', border: '1px solid var(--border)',
-          borderRadius: 6, padding: '0 12px', gap: 7, height: 36,
-        }}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" strokeWidth="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        {/* URL input */}
+        <div className="flex-1 flex items-center gap-2 h-9 bg-layer-2 border border-edge rounded-[6px] px-3">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" strokeWidth="2" className="shrink-0">
+            <rect x="3" y="11" width="18" height="11" rx="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
           <input
             value={url}
             onChange={(e) => onUrlChange(e.target.value)}
             placeholder="https://api.example.com/v1"
-            style={{
-              flex: 1, background: 'none', border: 'none',
-              color: 'var(--text0)', fontFamily: "'JetBrains Mono',monospace", fontSize: 12, outline: 'none',
-            }}
+            className="flex-1 bg-transparent border-none outline-none text-ink font-mono text-[12px] placeholder-ink-3"
           />
         </div>
 
+        {/* Send button */}
         <button
           onClick={onSend}
           disabled={isSending}
-          style={{
-            background: isSending ? 'var(--bg3)' : accent,
-            color: isSending ? 'var(--text2)' : accentInk,
-            border: 'none', borderRadius: 6, padding: '0 18px',
-            fontFamily: "'Inter',sans-serif", fontSize: 12, fontWeight: 600,
-            cursor: isSending ? 'not-allowed' : 'pointer',
-            display: 'flex', alignItems: 'center', gap: 7,
-            height: 36, minWidth: 86, transition: 'all 0.2s',
-          }}
+          className="h-9 px-[18px] rounded-[6px] font-sans font-semibold text-[12px] flex items-center gap-2 min-w-[86px] justify-center transition-all disabled:cursor-not-allowed bg-accent text-[var(--accent-ink)] disabled:bg-layer-3 disabled:text-ink-3"
         >
           {isSending ? (
             <>
-              <div
-                className="anim-spin"
-                style={{ width: 13, height: 13, border: '2px solid var(--text2)', borderTopColor: accent, borderRadius: '50%' }}
-              />
+              <span className="anim-spin w-[13px] h-[13px] border-2 border-ink-3 rounded-full shrink-0" style={{ borderTopColor: 'var(--accent)' }} />
               <span>Sending</span>
             </>
           ) : 'Send'}
@@ -123,35 +97,29 @@ export function RequestBuilder({
       </div>
 
       {/* Progress bar */}
-      <div style={{ height: 2, background: 'var(--bg3)' }}>
-        {isSending && (
-          <div className="anim-progress-grow" style={{ height: '100%', background: accent }} />
-        )}
+      <div className="h-[2px] bg-layer-3">
+        {isSending && <div className="h-full bg-accent anim-progress-grow" />}
       </div>
 
       {/* Tab bar */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', padding: '0 16px' }}>
+      <div className="flex border-b border-edge px-4">
         {TABS.map((t) => {
-          const badge = t === 'Params' ? (activeParamCount || null) : t === 'Headers' ? (activeHeaderCount || null) : null
+          const badge = t === 'Params' ? activeParamCount : t === 'Headers' ? activeHeaderCount : 0
+          const isActive = activeTab === t
           return (
             <button
               key={t}
               onClick={() => onTabChange(t)}
-              style={{
-                padding: '9px 13px', background: 'none', border: 'none',
-                color: activeTab === t ? 'var(--text0)' : 'var(--text2)',
-                fontFamily: "'Inter',sans-serif", fontSize: 12, cursor: 'pointer',
-                borderBottom: activeTab === t ? `2px solid ${accent}` : '2px solid transparent',
-                marginBottom: -1, fontWeight: activeTab === t ? 500 : 400,
-                display: 'flex', alignItems: 'center', gap: 5,
-              }}
+              className={`flex items-center gap-1.5 px-[13px] py-[9px] -mb-px text-[12px] font-sans border-b-2 transition-colors
+                ${isActive
+                  ? 'text-ink border-accent font-medium'
+                  : 'text-ink-3 border-transparent hover:text-ink-2'}`}
             >
               {t}
-              {badge && (
-                <span style={{
-                  background: 'var(--accent-dim)', color: accent,
-                  borderRadius: 2, padding: '0 5px', fontSize: 10, fontWeight: 600,
-                }}>{badge}</span>
+              {badge > 0 && (
+                <span className="bg-accent-dim text-accent rounded-sm px-[5px] text-[10px] font-semibold leading-[1.6]">
+                  {badge}
+                </span>
               )}
             </button>
           )
@@ -159,48 +127,40 @@ export function RequestBuilder({
       </div>
 
       {/* Tab content */}
-      <div style={{ background: 'var(--bg0)' }}>
+      <div className="bg-layer-0">
         {activeTab === 'Headers' && (
           <KVEditor
             items={headers}
             onAdd={() => onHeadersChange(kvAdd(headers))}
-            onChange={(i, f, v) => onHeadersChange(kvChange(headers, i, f, v))}
-            onRemove={(i) => onHeadersChange(kvRemove(headers, i))}
+            onChange={(i, f, v) => onHeadersChange(kvSet(headers, i, f, v))}
+            onRemove={(i) => onHeadersChange(kvDel(headers, i))}
             keyPlaceholder="Header"
-            valuePlaceholder="Value"
           />
         )}
         {activeTab === 'Params' && (
           <KVEditor
             items={params}
             onAdd={() => onParamsChange(kvAdd(params))}
-            onChange={(i, f, v) => onParamsChange(kvChange(params, i, f, v))}
-            onRemove={(i) => onParamsChange(kvRemove(params, i))}
+            onChange={(i, f, v) => onParamsChange(kvSet(params, i, f, v))}
+            onRemove={(i) => onParamsChange(kvDel(params, i))}
             keyPlaceholder="Parameter"
-            valuePlaceholder="Value"
           />
         )}
         {activeTab === 'Body' && (
-          <div style={{ padding: '12px 16px' }}>
+          <div className="p-3">
             <textarea
               value={body}
               onChange={(e) => onBodyChange(e.target.value)}
               placeholder="Raw JSON / text body"
               rows={6}
-              style={{
-                width: '100%', background: 'var(--bg2)', border: '1px solid var(--border)',
-                borderRadius: 6, color: 'var(--text0)', fontFamily: "'JetBrains Mono',monospace",
-                fontSize: 12, padding: '10px 12px', outline: 'none', resize: 'none', lineHeight: 1.6,
-              }}
+              className="w-full bg-layer-2 border border-edge rounded-[6px] text-ink font-mono text-[12px] p-3 outline-none resize-none leading-[1.6] placeholder-ink-3"
             />
           </div>
         )}
         {activeTab === 'Auth' && (
           <AuthEditor
-            auth={auth}
-            onAuthChange={onAuthChange}
-            profiles={profiles}
-            activeProfileId={activeProfileId}
+            auth={auth}             onAuthChange={onAuthChange}
+            profiles={profiles}     activeProfileId={activeProfileId}
             profileName={profileName}
             onProfileNameChange={onProfileNameChange}
             onSaveProfile={onSaveProfile}

@@ -1,8 +1,28 @@
 import { useState } from 'react'
 import type { HistoryEntry } from '../types'
 
-const METHOD_COLORS: Record<string, string> = {
+const METHOD_COLOR: Record<string, string> = {
   GET: '#5dbd7a', POST: '#5ab4d8', PUT: '#e09a4d', PATCH: '#9d7fe0', DELETE: '#cc5c5c',
+}
+
+function MethodLabel({ method }: { method: string }) {
+  return (
+    <span
+      className="font-mono font-semibold text-[10px] w-9 shrink-0"
+      style={{ color: METHOD_COLOR[method] ?? '#9dada2' }}
+    >
+      {method}
+    </span>
+  )
+}
+
+function StatusDot({ statusCode }: { statusCode: number }) {
+  const color = statusCode < 300 ? '#5dbd7a' : statusCode < 400 ? '#d4924a' : '#cc5c5c'
+  return (
+    <span className="font-mono font-semibold text-[9px] shrink-0" style={{ color }}>
+      {statusCode}
+    </span>
+  )
 }
 
 interface CollectionsSidebarProps {
@@ -10,42 +30,28 @@ interface CollectionsSidebarProps {
   onSelectEntry: (entry: HistoryEntry) => void
   onClear: () => void
   onNewRequest: () => void
-  accent: string
-  accentDim: string
-  accentGlow: string
 }
 
 export function CollectionsSidebar({
-  history,
-  onSelectEntry,
-  onClear,
-  onNewRequest,
-  accent,
-  accentDim,
-  accentGlow,
+  history, onSelectEntry, onClear, onNewRequest,
 }: CollectionsSidebarProps) {
   const [expanded, setExpanded] = useState(true)
   const [search, setSearch] = useState('')
 
-  const filtered = history.filter(
-    (e) =>
-      !search ||
-      e.url.toLowerCase().includes(search.toLowerCase()) ||
-      e.method.toLowerCase().includes(search.toLowerCase()),
-  )
+  const filtered = search
+    ? history.filter(
+        (e) =>
+          e.url.toLowerCase().includes(search.toLowerCase()) ||
+          e.method.toLowerCase().includes(search.toLowerCase()),
+      )
+    : history
 
   return (
-    <div style={{
-      width: 236, borderRight: '1px solid var(--border)', flexShrink: 0,
-      display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg1)',
-    }}>
-      {/* Search */}
-      <div style={{ padding: '10px 10px 8px' }}>
-        <div style={{
-          background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 6,
-          display: 'flex', alignItems: 'center', padding: '0 10px', gap: 6,
-        }}>
-          <svg width="11" height="11" viewBox="0 0 16 16" fill="none">
+    <aside className="w-sidebar border-r border-edge bg-layer-1 flex flex-col overflow-hidden shrink-0">
+      {/* Search bar */}
+      <div className="px-2.5 py-2">
+        <div className="flex items-center gap-1.5 bg-layer-2 border border-edge rounded-[6px] px-2.5">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" className="shrink-0">
             <circle cx="7" cy="7" r="5" stroke="var(--text2)" strokeWidth="1.5" />
             <path d="M11 11l3 3" stroke="var(--text2)" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
@@ -53,107 +59,73 @@ export function CollectionsSidebar({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search requests…"
-            style={{
-              background: 'none', border: 'none', color: 'var(--text0)',
-              fontFamily: "'Inter',sans-serif", fontSize: 12,
-              padding: '7px 0', outline: 'none', flex: 1,
-            }}
+            className="bg-transparent border-none outline-none text-ink placeholder-ink-3 font-sans text-[12px] py-[7px] flex-1 min-w-0"
           />
         </div>
       </div>
 
-      {/* Recent requests collection */}
-      <div style={{ overflow: 'auto', flex: 1 }}>
-        {/* Collection header */}
-        <div
+      {/* Collection list */}
+      <div className="overflow-auto flex-1">
+        {/* Collection header row */}
+        <button
           onClick={() => setExpanded((v) => !v)}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 12px', cursor: 'pointer', userSelect: 'none' }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'var(--bg2)' }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'none' }}
+          className="w-full flex items-center gap-2 px-3 py-[7px] hover:bg-layer-2 transition-colors text-left"
         >
           <svg
             width="9" height="9" viewBox="0 0 9 9" fill="none"
-            style={{ transform: expanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', color: 'var(--text2)', flexShrink: 0 }}
+            className="shrink-0 transition-transform duration-150 text-ink-3"
+            style={{ transform: expanded ? 'rotate(90deg)' : 'none' }}
           >
             <path d="M2.5 1.5l4 3-4 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          <span style={{
-            fontSize: 10, fontFamily: "'JetBrains Mono',monospace", fontWeight: 600,
-            color: accent, background: accentDim, padding: '1px 5px', borderRadius: 2,
-          }}>RC</span>
-          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text1)', flex: 1 }}>Recent</span>
-          <span style={{ fontSize: 10, color: 'var(--text2)' }}>{history.length}</span>
-        </div>
+          <span className="font-mono font-semibold text-[10px] text-accent bg-accent-dim px-[5px] py-px rounded-sm">
+            RC
+          </span>
+          <span className="text-xs font-medium text-ink-2 flex-1 text-left">Recent</span>
+          <span className="text-[10px] text-ink-3">{history.length}</span>
+        </button>
 
         {/* History entries */}
         {expanded && (
           filtered.length === 0 ? (
-            <div style={{ padding: '12px 16px 12px 26px', fontSize: 11, color: 'var(--text2)', fontStyle: 'italic' }}>
+            <p className="pl-[26px] pr-3 py-2 text-[11px] text-ink-3 italic">
               {search ? 'No matches' : 'No requests yet'}
-            </div>
+            </p>
           ) : (
             filtered.map((entry) => (
-              <div
+              <button
                 key={entry.id}
                 onClick={() => onSelectEntry(entry)}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 12px 5px 26px', cursor: 'pointer' }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'var(--bg2)' }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.background = 'none' }}
+                className="w-full flex items-center gap-2 px-3 py-[5px] pl-[26px] hover:bg-layer-2 transition-colors text-left group"
               >
-                <span style={{
-                  color: METHOD_COLORS[entry.method] ?? '#9dada2',
-                  fontFamily: "'JetBrains Mono',monospace", fontWeight: 600, fontSize: 10,
-                  minWidth: 36, display: 'inline-block',
-                }}>
-                  {entry.method}
-                </span>
-                <span style={{
-                  fontSize: 11, color: 'var(--text1)', overflow: 'hidden',
-                  textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
-                }}>
+                <MethodLabel method={entry.method} />
+                <span className="text-[11px] text-ink-2 overflow-hidden text-ellipsis whitespace-nowrap flex-1">
                   {entry.url.replace(/^https?:\/\/[^/]+/, '') || '/'}
                 </span>
-                {entry.statusCode && (
-                  <span style={{
-                    fontSize: 9, fontFamily: "'JetBrains Mono',monospace", fontWeight: 600,
-                    color: entry.statusCode < 300 ? '#5dbd7a' : entry.statusCode < 400 ? '#d4924a' : '#cc5c5c',
-                  }}>
-                    {entry.statusCode}
-                  </span>
-                )}
-              </div>
+                {entry.statusCode && <StatusDot statusCode={entry.statusCode} />}
+              </button>
             ))
           )
         )}
       </div>
 
-      {/* Footer */}
-      <div style={{ padding: 10, borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {/* Footer actions */}
+      <div className="p-2.5 border-t border-edge flex flex-col gap-1.5">
         {history.length > 0 && (
           <button
             onClick={onClear}
-            style={{
-              width: '100%', background: 'none', border: '1px dashed var(--border2)',
-              color: 'var(--text2)', borderRadius: 6, padding: '5px', cursor: 'pointer',
-              fontFamily: "'Inter',sans-serif", fontSize: 11, transition: 'all 0.15s',
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#cc5c5c'; (e.currentTarget as HTMLButtonElement).style.borderColor = '#cc5c5c' }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--text2)'; (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border2)' }}
+            className="w-full text-[11px] text-ink-3 hover:text-red-400 border border-dashed border-edge-strong rounded-[6px] py-[5px] transition-colors font-sans"
           >
             Clear history
           </button>
         )}
         <button
           onClick={onNewRequest}
-          style={{
-            width: '100%', background: accentDim, border: `1px solid ${accentGlow}`,
-            color: accent, borderRadius: 6, padding: '7px',
-            fontFamily: "'Inter',sans-serif", fontSize: 12, fontWeight: 500, cursor: 'pointer',
-          }}
+          className="w-full text-xs font-medium text-accent bg-accent-dim border border-accent-glow rounded-[6px] py-[7px] hover:brightness-110 transition-all font-sans"
         >
           + New Request
         </button>
       </div>
-    </div>
+    </aside>
   )
 }

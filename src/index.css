@@ -2,59 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Base layout ── */
-*, *::before, *::after { box-sizing: border-box; }
+/* ── Base layout ─────────────────────────────────────────────────────────── */
 html, body, #root { height: 100%; overflow: hidden; }
 body { font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 13px; margin: 0; }
 
-/* ── Scrollbars ── */
+/* ── Scrollbars ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--bg4, #322d26); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
 
-/* ── Default theme vars (falcon-dark) ── */
-:root {
-  --bg0: #0d0b08;
-  --bg1: #141210;
-  --bg2: #1c1916;
-  --bg3: #26221c;
-  --bg4: #322d26;
-  --border: rgba(240,210,130,0.08);
-  --border2: rgba(240,210,130,0.15);
-  --text0: #f0e8d0;
-  --text1: #a09272;
-  --text2: #665840;
-  --shadow: rgba(0,0,0,0.6);
-  --accent: #e8b840;
-  --accent-dim: rgba(232,184,64,0.15);
-  --accent-glow: rgba(232,184,64,0.28);
+/* ── Themes — applied via data-theme attribute on root div ───────────────── */
+[data-theme="falcon-dark"] {
+  --bg0: #0d0b08; --bg1: #141210; --bg2: #1c1916; --bg3: #26221c; --bg4: #322d26;
+  --border: rgba(240,210,130,0.08); --border2: rgba(240,210,130,0.15);
+  --text0: #f0e8d0; --text1: #a09272; --text2: #665840;
+}
+[data-theme="falcon-sky"] {
+  --bg0: #e4eff8; --bg1: #f4f9fd; --bg2: #daeaf5; --bg3: #ccdeed; --bg4: #b8d0e4;
+  --border: rgba(10,30,60,0.09); --border2: rgba(10,30,60,0.16);
+  --text0: #0c1c2e; --text1: #3a5878; --text2: #7a98b8;
+}
+[data-theme="dark-forest"] {
+  --bg0: #0f1210; --bg1: #161a18; --bg2: #1e2421; --bg3: #252e29; --bg4: #2d3830;
+  --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+  --text0: #e8ede9; --text1: #9dada2; --text2: #5e706a;
+}
+[data-theme="dark-ocean"] {
+  --bg0: #0b0f1a; --bg1: #111827; --bg2: #16213a; --bg3: #1c2a4a; --bg4: #243354;
+  --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.13);
+  --text0: #dce8f5; --text1: #7a98b8; --text2: #3d5a7a;
 }
 
-/* ── Core keyframes ── */
+/* ── Keyframes ───────────────────────────────────────────────────────────── */
 @keyframes spin       { to { transform: rotate(360deg); } }
 @keyframes fadeIn     { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp    { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes shimmer    { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
 @keyframes progressGrow {
-  0%   { width: 0%; }
-  30%  { width: 42%; }
-  65%  { width: 76%; }
-  90%  { width: 91%; }
-  100% { width: 96%; }
+  0%  { width: 0%; }  30% { width: 42%; } 65% { width: 76%; }
+  90% { width: 91%; } 100% { width: 96%; }
 }
-
-/* ── Falcon splash keyframes ── */
 @keyframes falconEntry {
   0%   { transform: translate(340px,-200px) scale(0.22) rotate(-18deg); opacity: 0; }
   8%   { opacity: 1; }
-  55%  { transform: translate(30px, 18px) scale(0.92) rotate(-5deg); }
-  78%  { transform: translate(-8px, -4px) scale(1.04) rotate(2deg); }
-  90%  { transform: translate(3px, 2px) scale(0.99) rotate(0deg); }
-  100% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  55%  { transform: translate(30px,18px) scale(0.92) rotate(-5deg); }
+  78%  { transform: translate(-8px,-4px) scale(1.04) rotate(2deg); }
+  90%  { transform: translate(3px,2px) scale(0.99) rotate(0deg); }
+  100% { transform: translate(0,0) scale(1) rotate(0deg); }
 }
 @keyframes streakFade {
   0%, 30% { opacity: 0.6; transform: scaleX(1); }
-  100%    { opacity: 0; transform: scaleX(0.1); }
+  100%    { opacity: 0;   transform: scaleX(0.1); }
 }
 @keyframes wingPumpL {
   0%, 100% { transform-origin: right center; transform: rotate(0deg) scaleY(1); }
@@ -64,30 +62,24 @@ body { font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 13
   0%, 100% { transform-origin: left center; transform: rotate(0deg) scaleY(1); }
   40%      { transform-origin: left center; transform: rotate(-5deg) scaleY(0.88); }
 }
-@keyframes logoIn {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes tagIn {
-  from { opacity: 0; letter-spacing: 0.3em; }
-  to   { opacity: 1; letter-spacing: 0.12em; }
-}
+@keyframes logoIn   { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes tagIn    { from { opacity: 0; letter-spacing: 0.3em; }       to { opacity: 1; letter-spacing: 0.12em; } }
 @keyframes splashOut { to { opacity: 0; transform: scale(1.03); } }
 @keyframes tickPulse { 0% { opacity: 0.12; } 50% { opacity: 1; } 100% { opacity: 0.12; } }
 
-/* ── Animation utility classes ── */
-.anim-spin           { animation: spin 0.72s linear infinite; }
-.anim-fade-in        { animation: fadeIn 0.2s ease; }
-.anim-slide-up       { animation: slideUp 0.22s ease; }
-.anim-logo-in        { animation: logoIn 0.5s cubic-bezier(0.22,1,0.36,1) forwards; }
-.anim-tag-in         { animation: tagIn 0.6s 0.15s ease forwards; opacity: 0; }
-.anim-splash-out     { animation: splashOut 0.42s ease forwards; }
-.anim-falcon-entry   { animation: falconEntry 1.6s cubic-bezier(0.22,1,0.36,1) forwards; }
-.anim-progress-grow  { animation: progressGrow 3s cubic-bezier(0.4,0,0.2,1) forwards; }
-.anim-wing-l         { animation: wingPumpL 0.55s ease-in-out infinite; }
-.anim-wing-r         { animation: wingPumpR 0.55s ease-in-out infinite; }
+/* ── Named animation classes ─────────────────────────────────────────────── */
+.anim-spin          { animation: spin 0.72s linear infinite; }
+.anim-fade-in       { animation: fadeIn 0.2s ease; }
+.anim-slide-up      { animation: slideUp 0.22s ease; }
+.anim-logo-in       { animation: logoIn 0.5s cubic-bezier(0.22,1,0.36,1) forwards; }
+.anim-tag-in        { animation: tagIn 0.6s 0.15s ease forwards; opacity: 0; }
+.anim-splash-out    { animation: splashOut 0.42s ease forwards; }
+.anim-falcon-entry  { animation: falconEntry 1.6s cubic-bezier(0.22,1,0.36,1) forwards; }
+.anim-progress-grow { animation: progressGrow 3s cubic-bezier(0.4,0,0.2,1) forwards; }
+.anim-wing-l        { animation: wingPumpL 0.55s ease-in-out infinite; }
+.anim-wing-r        { animation: wingPumpR 0.55s ease-in-out infinite; }
 
-/* ── Shimmer loader ── */
+/* ── Shimmer skeleton ────────────────────────────────────────────────────── */
 .shimmer-line {
   background: linear-gradient(90deg, var(--bg2) 25%, var(--bg3) 50%, var(--bg2) 75%);
   background-size: 400px 100%;
