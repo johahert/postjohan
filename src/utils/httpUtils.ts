@@ -1,5 +1,26 @@
 import type { KVEntry, AuthConfig } from '../types'
 
+// Join an environment base URL with an endpoint path using exactly one slash.
+// If `path` is already an absolute URL it is returned verbatim (custom override).
+export function composeUrl(baseUrl: string, path: string): string {
+  if (/^https?:\/\//i.test(path)) return path
+  if (!baseUrl) return path
+  const trimmedBase = baseUrl.replace(/\/+$/, '')
+  if (!path) return trimmedBase
+  const trimmedPath = path.replace(/^\/+/, '')
+  return `${trimmedBase}/${trimmedPath}`
+}
+
+// Strip a leading `baseUrl` so a saved endpoint stores a relative path.
+// If `url` doesn't start with `baseUrl`, the full URL is kept as the path (override case).
+export function derivePath(url: string, baseUrl: string): string {
+  if (!baseUrl) return url
+  const trimmedBase = baseUrl.replace(/\/+$/, '')
+  if (url === trimmedBase) return '/'
+  if (url.startsWith(trimmedBase + '/')) return url.slice(trimmedBase.length)
+  return url
+}
+
 export function buildFinalUrl(url: string, params: KVEntry[]): string {
   const enabledParams = params.filter((p) => p.enabled && p.key.trim())
   if (enabledParams.length === 0) return url

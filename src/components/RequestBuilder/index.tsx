@@ -1,4 +1,4 @@
-import type { KVEntry, AuthConfig, AuthProfile } from '../../types'
+import type { KVEntry, ParamEntry, AuthConfig, AuthProfile } from '../../types'
 import { METHODS, TABS, type Tab } from '../../constants'
 import { KVEditor } from '../KVEditor'
 import { AuthEditor } from '../AuthEditor'
@@ -18,11 +18,17 @@ interface RequestBuilderProps {
   headers: KVEntry[]
   onHeadersChange: (items: KVEntry[]) => void
   // Params
-  params: KVEntry[]
-  onParamsChange: (items: KVEntry[]) => void
+  params: ParamEntry[]
+  onParamsChange: (items: ParamEntry[]) => void
   // Body
   body: string
   onBodyChange: (b: string) => void
+  // Endpoint save/update (collection)
+  canSaveEndpoint: boolean
+  loadedEndpointId: string | null
+  activeContextLabel: string | null
+  onSaveAsEndpoint: () => void
+  onUpdateEndpoint: () => void
   // Auth
   auth: AuthConfig
   onAuthChange: (a: AuthConfig) => void
@@ -35,20 +41,20 @@ interface RequestBuilderProps {
   onDeleteProfile: (id: string) => void
 }
 
-function kvAdd(items: KVEntry[]): KVEntry[] {
-  return [...items, { key: '', value: '', enabled: true }]
+function kvAdd<T extends KVEntry>(items: T[]): T[] {
+  return [...items, { key: '', value: '', enabled: true } as T]
 }
 
-function kvChange(
-  items: KVEntry[],
+function kvChange<T extends KVEntry>(
+  items: T[],
   index: number,
   field: keyof KVEntry,
   value: string | boolean,
-): KVEntry[] {
+): T[] {
   return items.map((e, i) => (i === index ? { ...e, [field]: value } : e))
 }
 
-function kvRemove(items: KVEntry[], index: number): KVEntry[] {
+function kvRemove<T extends KVEntry>(items: T[], index: number): T[] {
   return items.filter((_, i) => i !== index)
 }
 
@@ -67,6 +73,11 @@ export function RequestBuilder({
   onParamsChange,
   body,
   onBodyChange,
+  canSaveEndpoint,
+  loadedEndpointId,
+  activeContextLabel,
+  onSaveAsEndpoint,
+  onUpdateEndpoint,
   auth,
   onAuthChange,
   profiles,
@@ -106,6 +117,31 @@ export function RequestBuilder({
           {isSending ? 'Sending…' : 'Send'}
         </button>
       </div>
+
+      {/* Collection context + save actions */}
+      {canSaveEndpoint && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="truncate text-xs text-slate-400 dark:text-slate-500">
+            {activeContextLabel ?? 'No environment selected'}
+          </p>
+          <div className="flex items-center gap-2">
+            {loadedEndpointId && (
+              <button
+                onClick={onUpdateEndpoint}
+                className="h-8 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-600 transition hover:border-indigo-300 hover:text-indigo-600 dark:border-slate-600 dark:text-slate-300 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
+              >
+                Update endpoint
+              </button>
+            )}
+            <button
+              onClick={onSaveAsEndpoint}
+              className="h-8 rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white transition hover:bg-indigo-500"
+            >
+              Save as endpoint
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="mt-5">

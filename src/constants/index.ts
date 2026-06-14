@@ -1,4 +1,4 @@
-import type { AuthConfig } from '../types'
+import type { App, AuthConfig, Endpoint, Environment } from '../types'
 
 // ── Constants ──────────────────────────────────────────────────────────
 
@@ -17,4 +17,25 @@ export const defaultAuth = (): AuthConfig => ({
   basicPass: '',
   apiKeyHeader: 'X-API-Key',
   apiKeyValue: '',
+})
+
+// ── Factory helpers ────────────────────────────────────────────────────
+
+export const newApp = (name: string): App => ({
+  id: crypto.randomUUID(),
+  name,
+  environments: [],
+  activeEnvironmentId: null,
+  endpoints: [],
+})
+
+export const newEnvironment = (name: string, baseUrl = ''): Environment => ({
+  id: crypto.randomUUID(),
+  name,
+  baseUrl,
+})
+
+export const newEndpoint = (partial: Omit<Endpoint, 'id'>): Endpoint => ({
+  id: crypto.randomUUID(),
+  ...partial,
 })

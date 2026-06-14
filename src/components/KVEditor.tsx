@@ -1,7 +1,10 @@
+import { useId } from 'react'
 import type { KVEntry } from '../types'
 
+type KVEditorItem = KVEntry & { commonValues?: string[] }
+
 interface KVEditorProps {
-  items: KVEntry[]
+  items: KVEditorItem[]
   onAdd: () => void
   onChange: (index: number, field: keyof KVEntry, value: string | boolean) => void
   onRemove: (index: number) => void
@@ -17,9 +20,13 @@ export function KVEditor({
   keyPlaceholder = 'Key',
   valuePlaceholder = 'Value',
 }: KVEditorProps) {
+  const listId = useId()
   return (
     <div className="mt-4 space-y-2">
-      {items.map((entry, index) => (
+      {items.map((entry, index) => {
+        const suggestions = entry.commonValues?.filter((v) => v.trim()) ?? []
+        const datalistId = suggestions.length > 0 ? `${listId}-${index}` : undefined
+        return (
         <div key={index} className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -37,8 +44,16 @@ export function KVEditor({
             value={entry.value}
             onChange={(e) => onChange(index, 'value', e.target.value)}
             placeholder={valuePlaceholder}
+            list={datalistId}
             className="h-10 flex-1 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:focus:border-indigo-500"
           />
+          {datalistId && (
+            <datalist id={datalistId}>
+              {suggestions.map((v) => (
+                <option key={v} value={v} />
+              ))}
+            </datalist>
+          )}
           <button
             onClick={() => onRemove(index)}
             aria-label="Remove item"
@@ -47,7 +62,8 @@ export function KVEditor({
             ✕
           </button>
         </div>
-      ))}
+        )
+      })}
       <button
         onClick={onAdd}
         className="rounded-lg border border-dashed border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 transition hover:border-indigo-300 hover:text-indigo-500 dark:border-slate-600 dark:text-slate-400 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
