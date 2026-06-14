@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import type { Endpoint } from '../../types'
-import type { useApps } from '../../hooks/useApps'
+import type { UseAppsReturn } from '../../hooks/useApps'
 import { AppsModal } from '../AppsModal'
 import { EnvironmentsModal } from '../EnvironmentsModal'
 
 interface CollectionSidebarProps {
-  apps: ReturnType<typeof useApps>
+  apps: UseAppsReturn
   loadedEndpointId: string | null
   onLoadEndpoint: (endpoint: Endpoint) => void
 }
