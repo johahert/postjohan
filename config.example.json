@@ -37,5 +37,43 @@
       }
     }
   ],
-  "activeProfileId": null
+  "activeProfileId": null,
+  "apps": [
+    {
+      "id": "example-app-1",
+      "name": "My API",
+      "activeEnvironmentId": "example-env-staging",
+      "environments": [
+        {
+          "id": "example-env-staging",
+          "name": "Staging",
+          "baseUrl": "https://staging.example.com"
+        },
+        {
+          "id": "example-env-local",
+          "name": "Localhost",
+          "baseUrl": "http://localhost:3000"
+        }
+      ],
+      "endpoints": [
+        {
+          "id": "example-endpoint-1",
+          "name": "List users",
+          "method": "GET",
+          "path": "/users",
+          "headers": [{ "key": "Accept", "value": "application/json", "enabled": true }],
+          "params": [
+            {
+              "key": "status",
+              "value": "active",
+              "enabled": true,
+              "commonValues": ["active", "pending", "closed"]
+            }
+          ],
+          "body": ""
+        }
+      ]
+    }
+  ],
+  "activeAppId": null
 }

@@ -1,8 +1,10 @@
-import type { AuthProfile } from '../types'
+import type { App, AuthProfile } from '../types'
 
 interface ConfigData {
   profiles?: AuthProfile[]
   activeProfileId?: string | null
+  apps?: App[]
+  activeAppId?: string | null
 }
 
 export async function fetchConfig(): Promise<ConfigData> {
@@ -11,14 +13,11 @@ export async function fetchConfig(): Promise<ConfigData> {
   return res.json() as Promise<ConfigData>
 }
 
-export async function persistConfig(
-  profiles: AuthProfile[],
-  activeProfileId: string | null,
-): Promise<void> {
+export async function persistConfig(data: ConfigData): Promise<void> {
   const res = await fetch('/api/config', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ profiles, activeProfileId }),
+    body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error('Failed to persist config')
 }
